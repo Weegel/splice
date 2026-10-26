@@ -3,9 +3,144 @@ import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
+const cardApiEndpoints = [
+  'https://api2.splinterlands.com/cards/get_details',
+  'https://api.splinterlands.io/cards/get_details',
+  'https://api.splinterlands.com/cards/get_details',
+]
+
+async function loadOrCreateCardCatalog() {
+  const filePath = path.resolve(process.cwd(), 'local', 'all_cards.json')
+  try {
+    const cards = JSON.parse((await fs.readFile(filePath, 'utf8')).replace(/^\uFEFF/, ''))
+    if (Array.isArray(cards) && cards.length > 0) return cards
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') console.warn('Could not read local/all_cards.json; downloading a fresh copy.', error)
+  }
+
+  let lastError: unknown
+  for (const endpoint of cardApiEndpoints) {
+    try {
+      const response = await fetch(endpoint)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const cards = await response.json()
+      if (!Array.isArray(cards) || cards.length === 0) throw new Error('Card API returned no cards')
+      const snapshot = cards.map(({ id, name, color, type, rarity, stats }: any) => ({ id, name, color, type, rarity, stats }))
+      await fs.mkdir(path.dirname(filePath), { recursive: true })
+      await fs.writeFile(filePath, JSON.stringify(snapshot), 'utf8')
+      return snapshot
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError || new Error('Splinterlands card API is unavailable')
+}
+
+const normalizeFilePart = (value: unknown) =>
+  String(value || 'unnamed').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'unnamed'
+
+const battleFileBase = (value: any) => {
+  const name = value.name || `${value.summoner1?.name || 'team_1'} vs ${value.summoner2?.name || 'team_2'}`
+  return `battle_${normalizeFilePart(name)}`
+}
+
+async function findFileById(folder: string, id: string): Promise<string | null> {
+  try {
+    for (const file of await fs.readdir(folder)) {
+      if (!file.endsWith('.json')) continue
+      try {
+        const value = JSON.parse((await fs.readFile(path.join(folder, file), 'utf8')).replace(/^\uFEFF/, ''))
+        if (value?.id === id) return path.join(folder, file)
+      } catch {
+        // Invalid files are handled by the workspace loader.
+      }
+    }
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') throw error
+  }
+  return null
+}
+
+async function uniqueFilePath(folder: string, base: string, currentPath: string | null = null): Promise<string> {
+  for (let suffix = 0; ; suffix++) {
+    const filePath = path.join(folder, `${base}${suffix ? `(${suffix})` : ''}.json`)
+    if (filePath === currentPath) return filePath
+    try {
+      await fs.access(filePath)
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') return filePath
+      throw error
+    }
+  }
+}
+
+async function migrateBattleFileNames(root: string) {
+  const folder = path.join(root, 'battles')
+  try {
+    for (const file of await fs.readdir(folder)) {
+      if (!file.endsWith('.json')) continue
+      const currentPath = path.join(folder, file)
+      try {
+        const value = JSON.parse((await fs.readFile(currentPath, 'utf8')).replace(/^\uFEFF/, ''))
+        if (!value?.id) continue
+        const base = battleFileBase(value)
+        const escapedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        if (new RegExp(`^${escapedBase}(?:\\(\\d+\\))?\\.json$`).test(file)) continue
+        await fs.rename(currentPath, await uniqueFilePath(folder, base, currentPath))
+      } catch (error: any) {
+        console.warn(`Could not migrate battle filename ${file}`, error?.message || error)
+      }
+    }
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') throw error
+  }
+}
+
 const localWorkspacePlugin = () => ({
   name: 'local-workspace-writer',
   configureServer(server: any) {
+    server.middlewares.use('/__local_profiles_save', async (req: any, res: any) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405
+        res.end('Method Not Allowed')
+        return
+      }
+      try {
+        let body = ''
+        for await (const chunk of req) body += chunk
+        const payload = JSON.parse(body)
+        if (!Array.isArray(payload.profiles)) throw new Error('Invalid profiles payload')
+        const root = path.resolve(process.cwd(), 'local')
+        await fs.mkdir(root, { recursive: true })
+        await fs.writeFile(path.join(root, 'profiles.json'), JSON.stringify({ profiles: payload.profiles, activeProfileId: payload.activeProfileId || null }, null, 2), 'utf8')
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ ok: true }))
+      } catch (error) {
+        console.error('Profile write failed', error)
+        res.statusCode = 400
+        res.end('Invalid profiles payload')
+      }
+    })
+
+    server.middlewares.use('/__splinterlands_card_catalog', async (req: any, res: any) => {
+      if (req.method !== 'GET') {
+        res.statusCode = 405
+        res.end('Method Not Allowed')
+        return
+      }
+      try {
+        const cards = await loadOrCreateCardCatalog()
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify(cards))
+      } catch (error) {
+        console.error('Card catalog load failed', error)
+        res.statusCode = 503
+        res.end('Card catalog unavailable')
+      }
+    })
+
     server.middlewares.use('/__local_workspace_delete', async (req: any, res: any) => {
       if (req.method !== 'POST') {
         res.statusCode = 405
@@ -23,13 +158,9 @@ const localWorkspacePlugin = () => ({
           res.end('Invalid local workspace delete payload')
           return
         }
-        const safeId = String(payload.id).replace(/[^a-zA-Z0-9_-]/g, '_')
-        const filePath = path.resolve(process.cwd(), 'local', kind, `${kind.slice(0, -1)}_${safeId}.json`)
-        try {
-          await fs.unlink(filePath)
-        } catch (error: any) {
-          if (error?.code !== 'ENOENT') throw error
-        }
+        const folder = path.resolve(process.cwd(), 'local', kind)
+        const filePath = await findFileById(folder, payload.id)
+        if (filePath) await fs.unlink(filePath)
         res.statusCode = 200
         res.end(JSON.stringify({ ok: true }))
       } catch (error) {
@@ -48,7 +179,17 @@ const localWorkspacePlugin = () => ({
 
       try {
         const root = path.resolve(process.cwd(), 'local')
-        const result = { cards: [], challenges: [], campaigns: [], battleLogs: [] } as any
+        const result = { cards: [], challenges: [], campaigns: [], battleLogs: [], profiles: null, activeProfileId: null } as any
+        try {
+          const profileState = JSON.parse((await fs.readFile(path.join(root, 'profiles.json'), 'utf8')).replace(/^\uFEFF/, ''))
+          if (Array.isArray(profileState.profiles)) {
+            result.profiles = profileState.profiles
+            result.activeProfileId = profileState.activeProfileId || null
+          }
+        } catch (error: any) {
+          if (error?.code !== 'ENOENT') console.warn('Could not load local/profiles.json', error)
+        }
+        await migrateBattleFileNames(root)
         const folders = [
           ['cards', 'cards'],
           ['battles', 'battles'],
@@ -104,11 +245,14 @@ const localWorkspacePlugin = () => ({
           return
         }
 
-        const safeId = String(payload.value.id).replace(/[^a-zA-Z0-9_-]/g, '_')
         const root = path.resolve(process.cwd(), 'local', kind)
         await fs.mkdir(root, { recursive: true })
+        const existingPath = await findFileById(root, payload.value.id)
+        const safeId = normalizeFilePart(payload.value.id)
+        const base = kind === 'battles' ? battleFileBase(payload.value) : `${kind.slice(0, -1)}_${safeId}`
+        const filePath = existingPath || await uniqueFilePath(root, base)
         await fs.writeFile(
-          path.join(root, `${kind.slice(0, -1)}_${safeId}.json`),
+          filePath,
           JSON.stringify(payload.value, null, 2),
           'utf8'
         )

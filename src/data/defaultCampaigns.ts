@@ -1,12 +1,12 @@
 import { CampaignDefinition } from '../types/campaign';
 import { FORESTWALK_CAMPAIGN } from './defaultForestwalk';
+import { EMOR_CAMPAIGN } from './defaultEmor';
 
 export const DEFAULT_CAMPAIGNS: CampaignDefinition[] = [
   {
     id: 'campaign_siege_of_vulcan',
     name: 'The Molten Awakening: Wrath of Vulcan',
     description: 'A dark seismic disturbance shakes the Burning Lands. Assemble your team, investigate the caverns, navigate treacherous magma chambers, and confront Vulcan, The Molten Sovereign!',
-    difficulty: 'Gold',
     coverImage: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
     author: 'Splinterlands Lorekeeper',
     startNodeId: 'node_intro',
@@ -167,4 +167,4 @@ export const DEFAULT_CAMPAIGNS: CampaignDefinition[] = [
   },
 ];
 
-DEFAULT_CAMPAIGNS.push(FORESTWALK_CAMPAIGN);
+DEFAULT_CAMPAIGNS.push(FORESTWALK_CAMPAIGN, EMOR_CAMPAIGN);

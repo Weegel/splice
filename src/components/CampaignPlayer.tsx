@@ -7,15 +7,22 @@ import {
   BattleCampaignNode,
   EndCampaignNode,
   CampaignRunState,
+  CampaignEffect,
+  CampaignUnlockDefinition,
+  CampaignPrecondition,
 } from '../types/campaign';
 import { CardDefinition } from '../types/card';
 import { PvEChallenge, TeamSelection, BattleLog } from '../types/battle';
 import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { StorageService } from '../data/storage';
+import { getCampaignItems } from '../data/campaignItems';
+import { cleanCampaignInventoryItems, createCampaignCollection, createCampaignRun, getCampaignCollection, awardCampaignCard, reconcileCampaignRunStartingConfiguration } from '../data/campaignCollection';
+import { applyCampaignBattleOutcomeEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignShopOffer, tradeCampaignShopOffer, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from '../data/campaignEffects';
 import { BattleEngine } from '../engine/battleEngine';
 import { BattlePreparation } from './BattlePreparation';
 import { BattleViewer } from './BattleViewer';
 import { CardPreview } from './CardPreview';
+import { CampaignEncounterGraph } from './CampaignEncounterGraph';
 import {
   ArrowLeft,
   RotateCcw,
@@ -32,6 +39,11 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
+  MapPin,
+  Package,
+  Store,
+  X,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 interface CampaignPlayerProps {
@@ -42,6 +54,19 @@ interface CampaignPlayerProps {
   onExit: () => void;
 }
 
+function getShopEffectLabel(effect: CampaignEffect, cards: CardDefinition[], unlocks: CampaignUnlockDefinition[] = []): string {
+  if (effect.type === 'campaignunlock') return `Unlock: ${effect.unlockIds.map((id) => unlocks.find((unlock) => unlock.id === id)?.name || id).join(', ')}`;
+  if (effect.type === 'increase_starting_mana') return `+${effect.quantity} starting mana`;
+  if (effect.type === 'set_mana_to_starting_mana') return 'Set mana to starting mana';
+  if (effect.type === 'set_starting_mana') return `Starting mana: ${effect.mana}`;
+  if (effect.type === 'set_mana') return effect.useStartingMana ? 'Refill mana to starting mana' : `Mana: ${effect.mana}`;
+  if (effect.type === 'set_minimum_mana') return `Mana: ${effect.minimumMana}`;
+  if ('cardId' in effect) return `${effect.type === 'give_card' ? 'Receive' : 'Remove'} ${cards.find((card) => card.id === effect.cardId)?.name || effect.cardId}`;
+  if (effect.type === 'give_mana' || effect.type === 'remove_mana') return `${effect.type === 'give_mana' ? '+' : '-'}${effect.quantity} mana`;
+  if ('object' in effect || 'resource' in effect) return `${effect.type.startsWith('give') ? 'Receive' : 'Remove'} ${effect.quantity} x ${'object' in effect ? effect.object : effect.resource}`;
+  return '';
+}
+
 export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
   campaign,
   cards,
@@ -49,31 +74,41 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
   playerCollection,
   onExit,
 }) => {
+  const cardCatalog = [...new Map([...cards, ...(campaign.embeddedCards || [])].map((card) => [card.id, card])).values()];
   // Campaign progress state
   const [runState, setRunState] = useState<CampaignRunState>(() => {
     const existing = StorageService.getCampaignRun(campaign.id);
     if (existing && campaign.nodes[existing.currentNodeId]) {
-      return existing;
+      const currentStartingCollection = createCampaignCollection(campaign, cardCatalog, playerCollection);
+      const initialInventory = cleanCampaignInventoryItems(existing.initialInventory ?? []);
+      const initialMana = existing.initialMana;
+      const normalizedRun = {
+        ...normalizeCampaignInventory(existing),
+        initialCollection: existing.initialCollection ?? currentStartingCollection,
+        initialInventory: JSON.parse(JSON.stringify(initialInventory)),
+        inventory: cleanCampaignInventoryItems(existing.inventory ?? initialInventory),
+        initialMana,
+        mana: existing.mana ?? initialMana,
+        appliedEffectSourceIds: existing.appliedEffectSourceIds ?? existing.visitedNodeIds.map((id) => `node:${id}`),
+      };
+      return resolveCampaignMultiNodes(reconcileCampaignRunStartingConfiguration(normalizedRun, campaign, currentStartingCollection), campaign, cardCatalog);
     }
-    return {
-      campaignId: campaign.id,
-      currentNodeId: campaign.startNodeId,
-      visitedNodeIds: [campaign.startNodeId],
-      battleHistory: [],
-      unlockedCardIds: [],
-      earnedCards: [],
-      status: 'in_progress',
-    };
+    return resolveCampaignMultiNodes(applyCampaignNodeEffects(createCampaignRun(campaign, createCampaignCollection(campaign, cardCatalog, playerCollection)), campaign.nodes[campaign.startNodeId], cardCatalog), campaign, cardCatalog);
   });
 
   // Combat sub-states for Battle nodes
   const [isInBattlePrep, setIsInBattlePrep] = useState<boolean>(false);
   const [activeBattleLog, setActiveBattleLog] = useState<BattleLog | null>(null);
+  const [showCollection, setShowCollection] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
+  const [showUnlocks, setShowUnlocks] = useState(false);
+  const [showEncounterGraph, setShowEncounterGraph] = useState(false);
 
   // Save run state whenever it updates
   useEffect(() => {
+    if (campaign.collectionSource !== 'custom' && !playerCollection && !runState.initialCollection?.length && !runState.inventory?.length && !runState.initialInventory?.length && !runState.appliedEffectSourceIds?.length && !runState.visitedNodeIds.some((id) => campaign.nodes[id]?.type === 'multi')) return;
     StorageService.saveCampaignRun(runState);
-  }, [runState]);
+  }, [runState, campaign.collectionSource, playerCollection]);
 
   const currentNode: CampaignNode =
     campaign.nodes[runState.currentNodeId] || campaign.nodes[campaign.startNodeId];
@@ -88,20 +123,24 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
         !(campaign.embeddedCards || []).some((card) => card.id === earnedCard.id)
     ),
   ];
+  const availableCards = getCampaignCollection(runState);
+  const campaignItems = getCampaignItems(campaign);
+  const getPreconditionMessage = (preconditions: CampaignPrecondition[] | undefined) => {
+    const missing = (preconditions || []).filter((precondition) => !meetsCampaignPreconditions(runState, [precondition]));
+    return missing.map((precondition) => {
+      if (precondition.type === 'has_unlock') return `Requires unlock: ${campaign.unlocks?.find((unlock) => unlock.id === precondition.unlockId)?.name || 'Unavailable unlock'}`;
+      if (precondition.type === 'has_not_unlock') return `Requires unlock not received: ${campaign.unlocks?.find((unlock) => unlock.id === precondition.unlockId)?.name || 'Unavailable unlock'}`;
+      if (precondition.type === 'has_item') return `Requires ${precondition.quantity === 0 ? 'no' : `at least ${precondition.quantity}`} ${campaignItems.find((item) => item.name.toLowerCase() === precondition.item.toLowerCase())?.name || 'Unavailable item'}`;
+      const cardName = campaignCards.find((card) => card.id === precondition.cardId)?.name || 'Unavailable card';
+      return precondition.type === 'card_unlocked' ? `Requires card unlocked: ${cardName}` : `Requires card not unlocked: ${cardName}`;
+    }).join('; ');
+  };
 
   // Restart campaign run
   const handleRestart = () => {
-    if (confirm('Restart this campaign from the beginning?')) {
-      const resetState: CampaignRunState = {
-        campaignId: campaign.id,
-        currentNodeId: campaign.startNodeId,
-        visitedNodeIds: [campaign.startNodeId],
-        battleHistory: [],
-        unlockedCardIds: [],
-        earnedCards: [],
-        status: 'in_progress',
-      };
-      setRunState(resetState);
+    if (confirm('Restart this campaign and reset its collection, inventory, mana, and unlocks? All campaign rewards will be removed.')) {
+      const resetState = createCampaignRun(campaign, createCampaignCollection(campaign, cardCatalog, playerCollection));
+      setRunState(resolveCampaignMultiNodes(applyCampaignNodeEffects(resetState, campaign.nodes[campaign.startNodeId], cardCatalog), campaign, cardCatalog));
       setIsInBattlePrep(false);
       setActiveBattleLog(null);
     }
@@ -114,30 +153,37 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
       return;
     }
     const targetNode = campaign.nodes[targetNodeId];
-    setRunState((prev) => ({
+    setRunState((prev) => resolveCampaignMultiNodes(applyCampaignNodeEffects({
       ...prev,
       currentNodeId: targetNodeId,
       visitedNodeIds: [...prev.visitedNodeIds, targetNodeId],
       status: targetNode.type === 'end' ? 'completed' : 'in_progress',
       finalOutcome: targetNode.type === 'end' ? targetNode.outcome : undefined,
-    }));
+    }, targetNode, campaignCards), campaign, campaignCards));
     setIsInBattlePrep(false);
     setActiveBattleLog(null);
   };
 
   // Resolve challenge associated with current battle node
   const getBattleChallenge = (battleNode: BattleCampaignNode): PvEChallenge | null => {
+    let challenge: PvEChallenge | null;
     if (battleNode.inlineChallenge) {
-      return battleNode.inlineChallenge;
-    }
-    if (battleNode.challengeId) {
-      return (
+      challenge = battleNode.inlineChallenge;
+    } else if (battleNode.challengeId) {
+      challenge =
         challenges.find((ch) => ch.id === battleNode.challengeId) ||
         campaign.embeddedChallenges?.find((ch) => ch.id === battleNode.challengeId) ||
-        null
-      );
+        null;
+    } else {
+      challenge = challenges[0] || null;
     }
-    return challenges[0] || null;
+    if (!challenge) return null;
+    return {
+      ...challenge,
+      manaCap: campaign.campaignMana
+        ? Math.max(0, runState.mana || 0)
+        : Math.max(challenge.manaCap, runState.minimumMana || 0),
+    };
   };
 
   const handleLaunchCampaignBattle = (playerTeam: TeamSelection) => {
@@ -146,6 +192,10 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
     if (!challenge) {
       alert('Battle challenge definition could not be found.');
       return;
+    }
+
+    if (campaign.campaignMana) {
+      setRunState((current) => spendCampaignMana(current, getCampaignTeamManaCost(playerTeam, campaignCards)));
     }
 
     const engine = new BattleEngine(
@@ -170,19 +220,28 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
     }
 
     const outcome = activeBattleLog.winner === 1 ? 'victory' : activeBattleLog.winner === 2 ? 'defeat' : 'draw';
-    const unlocked = [...runState.unlockedCardIds];
-    const earnedCards = [...(runState.earnedCards || [])];
+    const finalBoard = activeBattleLog.events[activeBattleLog.events.length - 1]?.boardSnapshot;
+    const recoveredRun = campaign.campaignMana && finalBoard
+      ? recoverCampaignBattleMana(
+        runState,
+        finalBoard.team1.filter((monster) => monster.isAlive).map((monster) => monster.mana),
+        finalBoard.team2.filter((monster) => !monster.isAlive).map((monster) => monster.mana)
+      )
+      : runState;
+    const rewardedRun = outcome === 'victory'
+      ? awardCampaignCard(recoveredRun, campaignCards.find((card) => card.id === currentNode.rewardCardId))
+      : recoveredRun;
 
-    if (outcome === 'victory' && currentNode.rewardCardId && !unlocked.includes(currentNode.rewardCardId)) {
-      unlocked.push(currentNode.rewardCardId);
-      const rewardCard = campaignCards.find((card) => card.id === currentNode.rewardCardId);
-      if (rewardCard && !earnedCards.some((card) => card.id === rewardCard.id)) {
-        earnedCards.push({ ...rewardCard, isCustom: true });
-      }
-    }
+    const outcomeEffectsRun = applyCampaignBattleOutcomeEffects(
+      rewardedRun,
+      currentNode,
+      outcome,
+      activeBattleLog.id,
+      campaignCards
+    );
 
     const updatedRun: CampaignRunState = {
-      ...runState,
+      ...outcomeEffectsRun,
       battleHistory: [
         ...runState.battleHistory,
         {
@@ -191,8 +250,6 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
           outcome,
         },
       ],
-      unlockedCardIds: unlocked,
-      earnedCards,
     };
 
     setRunState(updatedRun);
@@ -211,6 +268,9 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
 
   return (
     <div className="space-y-6">
+      {showEncounterGraph && (
+        <CampaignEncounterGraph campaign={campaign} currentNodeId={runState.currentNodeId} onClose={() => setShowEncounterGraph(false)} />
+      )}
       {/* Top Campaign Status Header */}
       <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -224,9 +284,6 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold font-fantasy text-amber-400">{campaign.name}</h2>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-950 border border-slate-700 text-slate-300">
-                {campaign.difficulty}
-              </span>
             </div>
             <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
               <span>Chapter: {currentNode.title}</span>
@@ -236,7 +293,39 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button type="button" onClick={() => setShowEncounterGraph(true)} aria-haspopup="dialog" className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 flex items-center gap-1.5 hover:border-amber-500">
+            <GitFork className="w-4 h-4" />
+            Show Encounter Graph
+          </button>
+          <button
+            onClick={() => setShowInventory(!showInventory)}
+            aria-expanded={showInventory}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 flex items-center gap-1.5"
+          >
+            <Package className="w-4 h-4" />
+            Inventory ({runState.inventory?.length || 0})
+          </button>
+          {!!campaign.unlocks?.length && (
+            <button type="button" onClick={() => setShowUnlocks(!showUnlocks)} aria-expanded={showUnlocks} aria-controls="campaign-player-unlocks"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200">
+              <Award className="h-4 w-4" /> Unlocks ({campaign.unlocks.filter((unlock) => runState.campaignUnlockIds?.includes(unlock.id)).length}/{campaign.unlocks.length})
+            </button>
+          )}
+          {campaign.campaignMana && (
+            <span className="px-3 py-1.5 rounded-lg bg-blue-950/70 border border-blue-800 text-xs text-blue-200 flex items-center gap-1.5">
+              <Zap className="w-4 h-4" /> Mana: {runState.mana || 0}
+            </span>
+          )}
+          <button
+            onClick={() => setShowCollection(!showCollection)}
+            aria-expanded={showCollection}
+            aria-haspopup="dialog"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 flex items-center gap-1.5"
+          >
+            <BookOpen className="w-4 h-4" />
+            Collection ({availableCards.length})
+          </button>
           <button
             onClick={handleRestart}
             className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition"
@@ -247,6 +336,111 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
           </button>
         </div>
       </div>
+
+      {showUnlocks && (
+        <section id="campaign-player-unlocks" className="border-y border-slate-800 py-4">
+          <h3 className="mb-3 text-sm font-bold text-amber-300">Campaign Unlocks</h3>
+          <ul className="divide-y divide-slate-800">
+            {(campaign.unlocks || []).map((unlock) => {
+              const earned = runState.campaignUnlockIds?.includes(unlock.id);
+              return (
+                <li key={unlock.id} className="flex items-start gap-3 py-3">
+                  {earned ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" /> : <Shield className="h-4 w-4 shrink-0 text-slate-500" />}
+                  <div className="min-w-0 flex-1 break-words">
+                    <p className={`text-sm ${earned ? 'text-emerald-200' : 'text-slate-400'}`}>{unlock.name}</p>
+                    {unlock.description && <p className="mt-1 text-xs text-slate-500">{unlock.description}</p>}
+                  </div>
+                  <span className="shrink-0 text-xs text-slate-400">{earned ? 'Unlocked' : 'Locked'}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+      {showInventory && (
+        <section className="border-y border-slate-800 py-4">
+          <h3 className="text-sm font-bold text-amber-300 mb-3">Campaign Inventory</h3>
+          {runState.inventory?.length ? (
+            <table className="w-full table-fixed text-sm text-left">
+              <thead className="text-xs text-slate-400">
+                <tr><th className="py-2 font-semibold">Object</th><th className="w-24 py-2 text-right font-semibold">Quantity</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {runState.inventory.map((item) => (
+                  <tr key={item.id}>
+                    <td className="py-2 pr-4 text-slate-200 break-words">{item.object}</td>
+                    <td className="py-2 text-right text-amber-300 tabular-nums">{item.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <p className="text-xs text-slate-500">Inventory is empty.</p>}
+        </section>
+      )}
+
+      {showCollection && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-4"
+          role="presentation"
+          onClick={() => setShowCollection(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setShowCollection(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="campaign-player-collection-title"
+            onClick={(event) => event.stopPropagation()}
+            className="menu-panel w-full max-w-2xl flex flex-col gap-3 bg-slate-900 border border-slate-700 rounded-lg p-4 text-slate-100"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="campaign-player-collection-title" className="text-sm font-bold text-amber-300">
+                Campaign Collection ({availableCards.length})
+              </h3>
+              <button
+                type="button"
+                autoFocus
+                title="Close campaign collection"
+                aria-label="Close campaign collection"
+                onClick={() => setShowCollection(false)}
+                className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="min-h-0 overflow-y-auto space-y-4">
+              {([
+                { cardType: 'Summoner', label: 'Archons' },
+                { cardType: 'Monster', label: 'Units' },
+              ] as const).map((group) => {
+                const groupCards = availableCards.filter((card) => card.cardType === group.cardType);
+                return (
+                  <section key={group.label} aria-label={group.label} className="border-t border-slate-700 pt-3">
+                    <h4 className={`text-xs font-bold mb-2 ${group.cardType === 'Summoner' ? 'text-amber-300' : 'text-sky-300'}`}>
+                      {group.label} ({groupCards.length})
+                    </h4>
+                    {groupCards.length ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {groupCards.map((card) => (
+                          <div key={card.id} className="flex items-center gap-3 border border-slate-800 rounded-lg p-2 min-w-0">
+                            {card.imageUrl && <img src={card.imageUrl} alt="" className="w-10 h-14 object-contain shrink-0" />}
+                            <div className="min-w-0">
+                              <p className="text-sm text-slate-200 break-words">{card.name}</p>
+                              <p className="text-xs text-slate-400">{card.splinter} · Level {Math.max(...card.stats.map((stat) => stat.level))}</p>
+                              {runState.unlockedCardIds.includes(card.id) && <span className="text-xs text-emerald-400">Acquired</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="py-2 text-xs text-slate-500">No {group.label.toLowerCase()} in the collection.</p>}
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* ACTIVE BATTLE VIEWER EMBED */}
       {activeBattleLog ? (
@@ -279,6 +473,8 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
             <BattlePreparation
               challenge={challenge}
               cards={campaignCards}
+              campaignCollection={availableCards}
+              campaignMana={campaign.campaignMana}
               playerCollection={playerCollection}
                             allowedTiers={campaign.allowedTiers}
                             allowGladiators={campaign.allowGladiators}
@@ -372,14 +568,16 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                 {currentNode.choices.map((choice, idx) => (
                   <button
                     key={choice.id}
+                    disabled={!meetsCampaignPreconditions(runState, choice.preconditions)}
                     onClick={() => {
+                      if (!meetsCampaignPreconditions(runState, choice.preconditions)) return;
                       if (choice.nextNodeId) {
                         navigateToNode(choice.nextNodeId);
                       } else {
                         alert('This choice has no linked destination.');
                       }
                     }}
-                    className="w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-slate-800 hover:border-amber-500 bg-slate-950/80 hover:bg-slate-900/90 transition-all group shadow-lg flex items-center justify-between gap-4 select-none"
+                    className="w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-slate-800 enabled:hover:border-amber-500 bg-slate-950/80 enabled:hover:bg-slate-900/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all group shadow-lg flex items-center justify-between gap-4 select-none"
                   >
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -392,6 +590,9 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                       </div>
                       {choice.description && (
                         <p className="text-xs text-slate-400 pl-8">{choice.description}</p>
+                      )}
+                      {!meetsCampaignPreconditions(runState, choice.preconditions) && (
+                        <p className="break-words pl-8 text-xs text-amber-300">{getPreconditionMessage(choice.preconditions)}</p>
                       )}
                       {choice.consequenceSummary && (
                         <p className="text-[11px] text-amber-400/90 font-medium pl-8 italic">
@@ -407,10 +608,129 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
             </div>
           )}
 
+          {currentNode.type === 'hub' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <MapPin className="w-8 h-8 text-teal-400 shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold font-fantasy text-slate-100 break-words">{currentNode.title}</h3>
+                  <span className="text-xs font-bold text-teal-400">Points of Interest</span>
+                </div>
+              </div>
+              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-line">{currentNode.prompt}</p>
+              {currentNode.description && <p className="text-sm text-slate-400">{currentNode.description}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {currentNode.choices.map((building) => {
+                  const pointType = building.type || 'node';
+                  const PointIcon = pointType === 'event' ? Zap : pointType === 'shop' ? Store : MapPin;
+                  const destination = pointType === 'node' || pointType === 'shop' ? campaign.nodes[building.nextNodeId] : undefined;
+                  const description = pointType === 'shop' ? (destination?.type === 'shop' ? destination.description : undefined) : building.description;
+                  const visited = (pointType === 'node' || pointType === 'shop') && runState.visitedNodeIds.includes(building.nextNodeId);
+                  const effectSourceId = `poi:${currentNode.id}:${building.id}`;
+                  const completed = runState.appliedEffectSourceIds?.includes(effectSourceId);
+                  const meetsPreconditions = meetsCampaignPreconditions(runState, building.preconditions);
+                  const available = meetsPreconditions && (pointType === 'node' ? Boolean(destination) : pointType === 'shop' ? destination?.type === 'shop' : Boolean(building.effects?.length) && !completed);
+                  return (
+                    <button
+                      key={building.id}
+                      type="button"
+                      onClick={() => {
+                        if (!available || !meetsCampaignPreconditions(runState, building.preconditions)) return;
+                        if (pointType === 'node' || pointType === 'shop') navigateToNode(building.nextNodeId);
+                        else if (pointType === 'event') setRunState((current) => meetsCampaignPreconditions(current, building.preconditions) ? applyCampaignEffectSource(current, effectSourceId, building.effects, campaignCards) : current);
+                      }}
+                      disabled={!available}
+                      className="min-w-0 text-left rounded-lg border border-slate-700 bg-slate-950/80 overflow-hidden hover:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition group"
+                    >
+                      {building.imageUrl ? (
+                        <img src={building.imageUrl} alt="" className="w-full aspect-[16/9] object-cover" />
+                      ) : (
+                        <div className="aspect-[16/9] bg-teal-950/30 flex items-center justify-center">
+                          <PointIcon className="w-12 h-12 text-teal-500" />
+                        </div>
+                      )}
+                      <div className="p-4 space-y-2">
+                        <span className="text-xs text-teal-400">{pointType === 'event' ? 'Event' : pointType === 'shop' ? 'Shop' : 'Node'}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-bold text-slate-100 group-hover:text-teal-300 break-words min-w-0">{building.text}</h4>
+                          <ChevronRight className="w-4 h-4 text-teal-400 shrink-0" />
+                        </div>
+                        {description && <p className="text-xs text-slate-400 break-words">{description}</p>}
+                        {!meetsPreconditions && <p className="break-words text-xs text-amber-300">{getPreconditionMessage(building.preconditions)}</p>}
+                        <span className="text-xs text-teal-400">{pointType === 'event' ? completed ? 'Completed' : available ? 'Activate' : 'Unavailable' : !available ? 'Unavailable' : visited ? 'Visited' : pointType === 'shop' ? 'Browse' : 'Visit'}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {currentNode.type === 'multi' && (
+            <div role="alert" className="space-y-2">
+              <h3 className="text-lg font-bold text-slate-100">{currentNode.title}</h3>
+              <p className="text-sm text-rose-300">This multi outcome could not be resolved. No eligible destination, or a route cycle, was found.</p>
+            </div>
+          )}
+
+          {currentNode.type === 'shop' && (
+            <section className="space-y-4 animate-fade-in">
+              <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <Store className="h-8 w-8 shrink-0 text-lime-400" />
+                <h3 className="min-w-0 break-words text-xl font-bold font-fantasy text-slate-100">{currentNode.title}</h3>
+              </div>
+              {currentNode.description && <p className="whitespace-pre-line text-sm text-slate-300">{currentNode.description}</p>}
+              <div className="border-y border-slate-800 py-3">
+                {campaign.campaignMana && <p className="mb-2 text-xs text-blue-300">Starting mana: {runState.startingMana ?? runState.initialMana ?? 0}</p>}
+                <h4 className="mb-2 text-xs font-bold text-slate-400">Inventory</h4>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300">
+                  {(runState.inventory || []).map((item) => <span key={item.id} className="break-words">{item.quantity} x {item.object}</span>)}
+                  {!runState.inventory?.length && <span className="text-slate-500">Empty</span>}
+                </div>
+              </div>
+              <div className="max-h-[min(50dvh,32rem)] divide-y divide-slate-800 overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable]">
+                {!currentNode.offers.length && <p className="py-4 text-sm text-slate-500">No offers</p>}
+                {currentNode.offers.map((offer) => {
+                  const affordable = canTradeCampaignShopOffer(runState, offer, campaignCards);
+                  const meetsPreconditions = meetsCampaignPreconditions(runState, offer.preconditions);
+                  return (
+                    <article key={offer.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <h4 className="break-words text-sm font-bold text-lime-300">{offer.title || 'Offer'}</h4>
+                        {!meetsPreconditions && <p className="break-words text-xs text-amber-300">{getPreconditionMessage(offer.preconditions)}</p>}
+                        {Boolean(offer.effects?.length) && <ul className="space-y-1 text-xs text-amber-300">
+                          {offer.effects?.map((effect) => <li key={effect.id}>{getShopEffectLabel(effect, campaignCards, campaign.unlocks)}</li>)}
+                        </ul>}
+                        <div className="text-xs text-slate-400">For</div>
+                        <ul className="space-y-1 text-xs text-slate-300">
+                          {offer.costs.map((cost, index) => <li key={index} className="break-words">{cost.quantity} x {cost.object || 'Unnamed item'}</li>)}
+                        </ul>
+                      </div>
+                      <button type="button" disabled={!affordable} aria-label={`Buy ${offer.title || 'offer'}`}
+                        title={!meetsPreconditions ? getPreconditionMessage(offer.preconditions) : affordable ? 'Exchange required items for this offer' : 'Required items are missing or this offer is incomplete'}
+                        onClick={() => setRunState((current) => current.currentNodeId === currentNode.id ? tradeCampaignShopOffer(current, offer, campaignCards) : current)}
+                        className="flex shrink-0 items-center gap-2 rounded-lg border border-lime-700 bg-lime-950 px-3 py-2 text-xs font-bold text-lime-200 hover:bg-lime-900 disabled:cursor-not-allowed disabled:opacity-40">
+                        <ArrowRightLeft className="h-4 w-4" /> Buy
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end border-t border-slate-800 pt-4">
+                <button type="button" disabled={!currentNode.nextNodeId || !campaign.nodes[currentNode.nextNodeId]}
+                  onClick={() => { if (currentNode.nextNodeId) navigateToNode(currentNode.nextNodeId); }}
+                  className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-40">
+                  Leave <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </section>
+          )}
+
           {/* 3. BATTLE NODE BRIEFING */}
           {currentNode.type === 'battle' && (
             (() => {
               const challenge = getBattleChallenge(currentNode);
+              const description = currentNode.description?.trim() ? currentNode.description : challenge?.description;
               return (
                 <div className="space-y-6 animate-fade-in">
                   <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
@@ -426,9 +746,9 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                   </div>
 
                   {/* Battle Lore Description */}
-                  {currentNode.description && (
+                  {description && (
                     <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 text-slate-200 text-sm leading-relaxed">
-                      {currentNode.description}
+                      {description}
                     </div>
                   )}
 
@@ -440,7 +760,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                           Opponent Challenge: {challenge.name}
                         </span>
                         <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-700 font-bold">
-                          Mana Cap: {challenge.manaCap}
+                          {campaign.campaignMana ? `Campaign Mana: ${runState.mana || 0}` : `Mana Cap: ${challenge.manaCap}`}
                         </span>
                       </div>
 

@@ -481,7 +481,7 @@ export const BattleViewer: React.FC<BattleViewerProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
               <h3 className="font-fantasy font-bold text-rose-400 text-base">
-                Opponent: {battleLog.summoner2.name} (Lv {battleLog.summoner2.level})
+                Opponent: {battleLog.summoner2.name}{battleLog.summoner2.name !== 'No Summoner' && ` (Lv ${battleLog.summoner2.level})`}
               </h3>
             </div>
             <span className="text-xs text-rose-300 font-semibold">
@@ -508,7 +508,7 @@ export const BattleViewer: React.FC<BattleViewerProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
               <h3 className="font-fantasy font-bold text-blue-400 text-base">
-                Player Team: {battleLog.summoner1.name} (Lv {battleLog.summoner1.level})
+                Player Team: {battleLog.summoner1.name}{battleLog.summoner1.name !== 'No Summoner' && ` (Lv ${battleLog.summoner1.level})`}
               </h3>
             </div>
             <span className="text-xs text-blue-300 font-semibold">

@@ -13,9 +13,10 @@ import { BattlePreparation } from './components/BattlePreparation';
 import { BattleViewer } from './components/BattleViewer';
 import { SandboxSimulator } from './components/SandboxSimulator';
 import { PlayerProfileModal } from './components/PlayerProfileModal';
-import { PlayerCollectionState } from './services/splinterlandsApi';
+import { PlayerCollectionState, SplinterlandsApiService } from './services/splinterlandsApi';
 import { LocalWorkspaceService } from './services/localWorkspace';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
+import { isOfficialSplCardId } from './data/cardIds';
 import {
   Swords,
   Sparkles,
@@ -61,11 +62,23 @@ export default function App() {
   // Load cards, challenges, and campaigns from storage on mount
   useEffect(() => {
     loadData();
-    if (!StorageService.getActiveProfile()) setIsProfileSetupOpen(true);
+    void SplinterlandsApiService.fetchCardCatalog().then((catalog) => {
+      if (catalog.length > 0) {
+        StorageService.saveApiCards(catalog);
+        loadData();
+      }
+    });
   }, []);
 
   useEffect(() => {
     void LocalWorkspaceService.loadLocalCreations().then((localCreations) => {
+      if (localCreations.profiles) {
+        StorageService.hydrateProfiles(localCreations.profiles, localCreations.activeProfileId);
+      } else {
+        const existingProfiles = StorageService.getProfiles();
+        const activeProfileId = StorageService.getActiveProfile()?.id || null;
+        if (existingProfiles.length > 0) void LocalWorkspaceService.writeProfiles(existingProfiles, activeProfileId);
+      }
       const hasLocalCreations =
         localCreations.cards.length > 0 ||
         localCreations.challenges.length > 0 ||
@@ -73,8 +86,9 @@ export default function App() {
         localCreations.battleLogs.length > 0;
       if (hasLocalCreations) {
         StorageService.hydrateLocalCreations(localCreations);
-        loadData();
       }
+      loadData();
+      setIsProfileSetupOpen(!StorageService.getActiveProfile());
     });
   }, []);
 
@@ -88,11 +102,16 @@ export default function App() {
     setActiveProfile(StorageService.getActiveProfile());
   };
 
-  const handleCreateProfile = (name: string) => {
-    const profile = StorageService.createProfile(name);
-    setActiveProfile(profile);
-    setProfiles(StorageService.getProfiles());
-    setIsProfileSetupOpen(false);
+  const handleCreateProfile = (name: string): string | null => {
+    try {
+      const profile = StorageService.createProfile(name);
+      setActiveProfile(profile);
+      setProfiles(StorageService.getProfiles());
+      setIsProfileSetupOpen(false);
+      return null;
+    } catch (error: any) {
+      return error?.message || 'Could not create profile.';
+    }
   };
 
   const handleSelectProfile = (profile: LocalPlayerProfile) => {
@@ -125,7 +144,7 @@ export default function App() {
     StorageService.saveApiCards(newCards);
     // Clean up any spl_ cards that might have accidentally been saved into customCards
     const rawCustom = StorageService.getCustomCards();
-    const cleanCustom = rawCustom.filter((c) => !c.id.startsWith('spl_'));
+    const cleanCustom = rawCustom.filter((c) => !isOfficialSplCardId(c.id));
     if (cleanCustom.length !== rawCustom.length) {
       localStorage.setItem('splinter_custom_cards', JSON.stringify(cleanCustom));
     }

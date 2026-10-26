@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useDeferredValue, useState } from 'react';
 import { CardDefinition, Splinter, CardType, Rarity, AttackType, Ability, CardStatLevel, SummonerBuffs } from '../types/card';
 import { ALL_ABILITIES, ABILITY_METAS } from '../data/abilities';
 import { ALL_SPLINTERS } from '../types/ruleset';
@@ -14,6 +14,7 @@ import {
   Search,
   Filter,
   Check,
+  ChevronDown,
   X,
   Sparkles,
   Info,
@@ -28,6 +29,102 @@ interface CardEditorProps {
   cards: CardDefinition[];
   onCardsUpdated: () => void;
 }
+
+interface CardCatalogItemProps {
+  card: CardDefinition;
+  onEdit: (card: CardDefinition) => void;
+  onClone: (card: CardDefinition) => void;
+  onExport: (card: CardDefinition) => void;
+  onDelete: (cardId: string) => void;
+}
+
+interface AbilityPickerProps {
+  abilities: Ability[];
+  selectedAbilities: Ability[];
+  search: string;
+  searchLabel: string;
+  placeholder: string;
+  variant: 'rose' | 'amber' | 'emerald';
+  onSearchChange: (search: string) => void;
+  onToggle: (ability: Ability) => void;
+}
+
+function AbilityPicker({ abilities, selectedAbilities, search, searchLabel, placeholder, variant, onSearchChange, onToggle }: AbilityPickerProps) {
+  const filteredAbilities = abilities.filter((ability) => ability.toLowerCase().includes(search.trim().toLowerCase())).sort();
+  const selectedStyles = {
+    rose: 'border-rose-500 bg-rose-950/80 text-rose-200',
+    amber: 'border-amber-500 bg-amber-950/80 text-amber-200',
+    emerald: 'border-emerald-500 bg-emerald-950/80 text-emerald-200',
+  };
+  const checkStyles = { rose: 'text-rose-400', amber: 'text-amber-400', emerald: 'text-emerald-400' };
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 hover:border-slate-500 [&::-webkit-details-marker]:hidden">
+        <span>{selectedAbilities.length ? `${selectedAbilities.length} selected` : 'Select abilities'}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+      </summary>
+      <div className="mt-1 w-full min-w-0 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl">
+        <input type="search" aria-label={searchLabel} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={placeholder}
+          className="mb-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500" />
+        <div className="max-h-48 overflow-y-auto">
+          {filteredAbilities.map((ability) => {
+            const isSelected = selectedAbilities.includes(ability);
+            return (
+              <button key={ability} type="button" aria-pressed={isSelected} onClick={() => onToggle(ability)} title={ABILITY_METAS[ability]?.description}
+                className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs ${isSelected ? selectedStyles[variant] : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                <span className="min-w-0 truncate">{ability}</span>
+                {isSelected && <Check className={`h-3.5 w-3.5 shrink-0 ${checkStyles[variant]}`} />}
+              </button>
+            );
+          })}
+          {!filteredAbilities.length && <p className="py-3 text-center text-xs text-slate-500">No abilities match.</p>}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+const CardCatalogItem = React.memo(function CardCatalogItem({ card, onEdit, onClone, onExport, onDelete }: CardCatalogItemProps) {
+  return (
+    <div className="relative group flex flex-col items-center">
+      <CardPreview card={card} level={1} />
+      <div className="mt-2 flex items-center gap-1.5 w-full justify-center">
+        <button
+          onClick={() => onEdit({ ...card })}
+          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1 transition"
+          title="Edit Card"
+        >
+          <Edit className="w-3.5 h-3.5" />
+          <span>Edit</span>
+        </button>
+        <button
+          onClick={() => onClone(card)}
+          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1 transition"
+          title="Clone / Duplicate"
+        >
+          <Copy className="w-3.5 h-3.5" />
+          <span>Clone</span>
+        </button>
+        <button
+          onClick={() => onExport(card)}
+          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1 transition"
+          title="Export this card as individual JSON file"
+        >
+          <Download className="w-3.5 h-3.5" />
+        </button>
+        {card.isCustom && (
+          <button
+            onClick={() => onDelete(card.id)}
+            className="p-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-700/60 text-xs flex items-center gap-1 transition"
+            title="Delete Custom Card"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+});
 
 const PRESET_ART_OPTIONS: { label: string; url: string; splinter: Splinter }[] = [
   { label: 'Infernal Dragon', splinter: 'Fire', url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300&auto=format&fit=crop&q=80' },
@@ -51,6 +148,7 @@ const SUMMONER_ABILITY_OPTIONS: Ability[] = [
 export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated }) => {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedSplinter, setSelectedSplinter] = useState<Splinter | 'ALL'>('ALL');
   const [selectedType, setSelectedType] = useState<CardType | 'ALL'>('ALL');
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -60,16 +158,30 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
   const [editingCard, setEditingCard] = useState<CardDefinition | null>(null);
   const [activeLevelTab, setActiveLevelTab] = useState<number>(1);
   const [abilitySearch, setAbilitySearch] = useState('');
+  const [supportAbilitySearch, setSupportAbilitySearch] = useState('');
+  const [grantedAbilitySearch, setGrantedAbilitySearch] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  const showFeedback = (text: string, type: 'success' | 'error' = 'success') => {
+  const resetAbilitySearches = useCallback(() => {
+    setAbilitySearch('');
+    setSupportAbilitySearch('');
+    setGrantedAbilitySearch('');
+  }, []);
+
+  const handleEditCard = useCallback((card: CardDefinition) => {
+    resetAbilitySearches();
+    setActiveLevelTab(1);
+    setEditingCard(card);
+  }, [resetAbilitySearches]);
+
+  const showFeedback = useCallback((text: string, type: 'success' | 'error' = 'success') => {
     setFeedbackMessage({ text, type });
     setTimeout(() => setFeedbackMessage(null), 3500);
-  };
+  }, []);
 
   // Filtered card list
   const filteredCards = cards.filter((c) => {
-    if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (deferredSearchQuery && !c.name.toLowerCase().includes(deferredSearchQuery.toLowerCase())) return false;
     if (selectedSplinter !== 'ALL' && c.splinter !== selectedSplinter) return false;
     if (selectedType !== 'ALL' && c.cardType !== selectedType) return false;
     if (selectedRarity !== 'ALL' && c.rarity !== selectedRarity) return false;
@@ -78,9 +190,9 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
   });
 
   const handleCreateNew = (type: CardType = 'Monster') => {
-    const id = `custom_${type.toLowerCase()}_${Date.now()}`;
+    resetAbilitySearches();
     const newCard: CardDefinition = {
-      id,
+      id: '',
       name: type === 'Monster' ? 'New Custom Monster' : 'New Custom Summoner',
       splinter: 'Fire',
       cardType: type,
@@ -119,10 +231,11 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
     setActiveLevelTab(1);
   };
 
-  const handleCloneCard = (card: CardDefinition) => {
+  const handleCloneCard = useCallback((card: CardDefinition) => {
+    resetAbilitySearches();
     const cloned: CardDefinition = {
       ...card,
-      id: `custom_${card.cardType.toLowerCase()}_${Date.now()}`,
+      id: '',
       name: `${card.name} (Custom Copy)`,
       isCustom: true,
       stats: card.stats.map((s) => ({ ...s, abilities: [...s.abilities] })),
@@ -130,15 +243,15 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
     };
     setEditingCard(cloned);
     setActiveLevelTab(1);
-  };
+  }, [resetAbilitySearches]);
 
-  const handleDeleteCard = (cardId: string) => {
+  const handleDeleteCard = useCallback((cardId: string) => {
     if (confirm('Are you sure you want to delete this custom card?')) {
       StorageService.deleteCard(cardId);
       onCardsUpdated();
       showFeedback('Card deleted successfully.');
     }
-  };
+  }, [onCardsUpdated, showFeedback]);
 
   const handleSaveCard = () => {
     if (!editingCard) return;
@@ -146,10 +259,10 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
       showFeedback('Please provide a card name.', 'error');
       return;
     }
-    StorageService.saveCard(editingCard);
+    const savedCard = StorageService.saveCard(editingCard);
     onCardsUpdated();
     setEditingCard(null);
-    showFeedback(`Saved card "${editingCard.name}"!`);
+    showFeedback(`Saved card "${savedCard.name}" as ${savedCard.id}!`);
   };
 
   const handleExportJson = (includeAll = false) => {
@@ -164,7 +277,7 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
     showFeedback(`Exported ${includeAll ? 'all' : 'custom'} cards JSON.`);
   };
 
-  const handleExportSingleCard = (card: CardDefinition) => {
+  const handleExportSingleCard = useCallback((card: CardDefinition) => {
     const dataStr = JSON.stringify(card, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -174,7 +287,7 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
     link.click();
     URL.revokeObjectURL(url);
     showFeedback(`Exported card "${card.name}" JSON.`);
-  };
+  }, [showFeedback]);
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -414,44 +527,14 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
       {/* Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredCards.map((card) => (
-          <div key={card.id} className="relative group flex flex-col items-center">
-            <CardPreview card={card} level={1} />
-            {/* Hover Actions */}
-            <div className="mt-2 flex items-center gap-1.5 w-full justify-center">
-              <button
-                onClick={() => setEditingCard({ ...card })}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1 transition"
-                title="Edit Card"
-              >
-                <Edit className="w-3.5 h-3.5" />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={() => handleCloneCard(card)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1 transition"
-                title="Clone / Duplicate"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>Clone</span>
-              </button>
-              <button
-                onClick={() => handleExportSingleCard(card)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1 transition"
-                title="Export this card as individual JSON file"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </button>
-              {card.isCustom && (
-                <button
-                  onClick={() => handleDeleteCard(card.id)}
-                  className="p-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-700/60 text-xs flex items-center gap-1 transition"
-                  title="Delete Custom Card"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+          <CardCatalogItem
+            key={card.id}
+            card={card}
+            onEdit={handleEditCard}
+            onClone={handleCloneCard}
+            onExport={handleExportSingleCard}
+            onDelete={handleDeleteCard}
+          />
         ))}
       </div>
 
@@ -464,11 +547,11 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
 
       {/* EDIT / CREATE CARD MODAL */}
       {editingCard && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 text-slate-100 flex flex-col lg:flex-row gap-8">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-hidden">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl max-h-[calc(100dvh_-_2rem)] min-h-0 overflow-hidden shadow-2xl p-6 text-slate-100 flex flex-col lg:flex-row gap-4 lg:gap-8">
             {/* Left Side: Form Controls */}
-            <div className="flex-1 space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="min-h-0 min-w-0 flex-1 flex flex-col gap-5">
+              <div className="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 className="text-xl font-bold font-fantasy text-rose-400 flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
                   {editingCard.isCustom ? 'Card Forge' : `Inspect / Edit: ${editingCard.name}`}
@@ -482,6 +565,7 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
               </div>
 
               {/* Name & Splinter & Rarity */}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-5 pr-2 [scrollbar-gutter:stable]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Card Name</label>
@@ -702,44 +786,15 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
 
                   {/* Abilities Selector */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                       <label className="text-xs font-bold text-slate-300 flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5 text-rose-400" />
                         Abilities for Level {activeLevelTab} ({currentStatLevel.abilities.length} selected):
                       </label>
-                      <input
-                        type="text"
-                        value={abilitySearch}
-                        onChange={(e) => setAbilitySearch(e.target.value)}
-                        placeholder="Search abilities..."
-                        className="bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-rose-500"
-                      />
                     </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto p-1 bg-slate-900/50 rounded-lg border border-slate-800">
-                      {ALL_ABILITIES.filter((ab) =>
-                        ab.toLowerCase().includes(abilitySearch.toLowerCase())
-                      ).map((ability) => {
-                        const isSelected = currentStatLevel.abilities.includes(ability);
-                        const meta = ABILITY_METAS[ability];
-                        return (
-                          <button
-                            key={ability}
-                            type="button"
-                            onClick={() => toggleAbility(ability)}
-                            title={meta?.description}
-                            className={`px-2 py-1.5 rounded text-left text-xs font-medium border transition flex items-center justify-between ${
-                              isSelected
-                                ? 'bg-rose-950/80 border-rose-500 text-rose-200 font-bold'
-                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                            }`}
-                          >
-                            <span className="truncate">{ability}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-rose-400 shrink-0 ml-1" />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <AbilityPicker abilities={ALL_ABILITIES} selectedAbilities={currentStatLevel.abilities} search={abilitySearch}
+                      searchLabel="Search monster abilities" placeholder="Search abilities..." variant="rose"
+                      onSearchChange={setAbilitySearch} onToggle={toggleAbility} />
                   </div>
                 </div>
               ) : (
@@ -749,66 +804,45 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
                     Summoner Stat Modifiers
                   </h4>
 
+                  <div className="max-w-xs">
+                    <label className="block text-[11px] font-bold text-blue-400 mb-1" htmlFor="summoner-mana-cost">
+                      Mana Cost
+                    </label>
+                    <input
+                      id="summoner-mana-cost"
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={currentStatLevel.mana}
+                      onChange={(event) => updateCurrentStatLevel({ mana: Math.max(0, parseInt(event.target.value, 10) || 0) })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm font-bold text-blue-300"
+                    />
+                  </div>
+
                   {/* Summoner abilities */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                       <div>
                         <span className="text-xs text-slate-300 font-semibold block">Summoner Support Abilities</span>
                         <span className="text-[10px] text-slate-500">Team-interaction abilities this summoner provides at level {activeLevelTab}.</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto p-1 bg-slate-900/50 rounded-lg border border-slate-800">
-                      {SUMMONER_ABILITY_OPTIONS.filter((ab) => ab.toLowerCase().includes(abilitySearch.toLowerCase())).map((ability) => {
-                        const isSelected = currentStatLevel.abilities.includes(ability);
-                        const meta = ABILITY_METAS[ability];
-                        return (
-                          <button
-                            key={`summoner-${ability}`}
-                            type="button"
-                            onClick={() => toggleAbility(ability)}
-                            title={meta?.description}
-                            className={`px-2 py-1.5 rounded text-left text-xs font-medium border transition flex items-center justify-between ${
-                              isSelected
-                                ? 'bg-amber-950/80 border-amber-500 text-amber-200 font-bold'
-                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                            }`}
-                          >
-                            <span className="truncate">{ability}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 ml-1" />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <AbilityPicker abilities={SUMMONER_ABILITY_OPTIONS} selectedAbilities={currentStatLevel.abilities} search={supportAbilitySearch}
+                      searchLabel="Search summoner support abilities" placeholder="Search support abilities..." variant="amber"
+                      onSearchChange={setSupportAbilitySearch} onToggle={toggleAbility} />
                   </div>
 
                   {/* Granted abilities */}
                   <div>
-                    <div className="mb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div>
                       <span className="text-xs text-slate-300 font-semibold block">Grant Abilities to Friendly Monsters</span>
                       <span className="text-[10px] text-slate-500">Selected abilities are added to every friendly monster.</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto p-1 bg-slate-900/50 rounded-lg border border-slate-800">
-                      {ALL_ABILITIES.filter((ab) => ab.toLowerCase().includes(abilitySearch.toLowerCase())).map((ability) => {
-                        const isSelected = editingCard.summonerBuffs?.abilitiesGranted?.includes(ability) || false;
-                        const meta = ABILITY_METAS[ability];
-                        return (
-                          <button
-                            key={`grant-${ability}`}
-                            type="button"
-                            onClick={() => toggleSummonerGrantedAbility(ability)}
-                            title={meta?.description}
-                            className={`px-2 py-1.5 rounded text-left text-xs font-medium border transition flex items-center justify-between ${
-                              isSelected
-                                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 font-bold'
-                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                            }`}
-                          >
-                            <span className="truncate">{ability}</span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 ml-1" />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <AbilityPicker abilities={ALL_ABILITIES} selectedAbilities={editingCard.summonerBuffs?.abilitiesGranted || []} search={grantedAbilitySearch}
+                      searchLabel="Search granted abilities" placeholder="Search granted abilities..." variant="emerald"
+                      onSearchChange={setGrantedAbilitySearch} onToggle={toggleSummonerGrantedAbility} />
                   </div>
 
                   {/* Friendly Team Buffs */}
@@ -885,7 +919,8 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
               </div>
 
               {/* Footer Save & Cancel Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              </div>
+              <div className="shrink-0 flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setEditingCard(null)}
@@ -905,7 +940,7 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
             </div>
 
             {/* Right Side: Live Card Preview */}
-            <div className="lg:w-64 flex flex-col items-center justify-center p-4 bg-slate-950/80 border border-slate-800 rounded-2xl shrink-0">
+            <div className="lg:w-64 max-h-[25dvh] lg:max-h-none overflow-y-auto overscroll-contain flex flex-col items-center p-4 bg-slate-950/80 border border-slate-800 rounded-2xl shrink-0 [&>*]:shrink-0">
               <span className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">
                 Live Card Preview
               </span>

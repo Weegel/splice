@@ -26,6 +26,16 @@ export const ABILITY_METAS: Record<Ability, AbilityMeta> = {
     description: 'Melee attack Monsters with the Reach ability may attack from the second position on the team.',
     type: 'passive',
   },
+  Charge: {
+    name: 'Charge',
+    description: 'This Monster can attack with Melee attacks from any position on its team.',
+    type: 'passive',
+  },
+  Ambush: {
+    name: 'Ambush',
+    description: 'Performs an attack before the first round begins.',
+    type: 'attack',
+  },
   Taunt: {
     name: 'Taunt',
     description: 'All enemy Monsters target this Monster (if they are able to).',
@@ -60,6 +70,11 @@ export const ABILITY_METAS: Record<Ability, AbilityMeta> = {
     name: 'Heal',
     description: 'Restores a portion of the Monster\'s health each round (1/3 max health rounded down, min 2).',
     type: 'buff',
+  },
+  Immunity: {
+    name: 'Immunity',
+    description: 'This Monster is immune to negative status effects.',
+    type: 'defense',
   },
   'Tank Heal': {
     name: 'Tank Heal',
@@ -123,7 +138,7 @@ export const ABILITY_METAS: Record<Ability, AbilityMeta> = {
   },
   Cleave: {
     name: 'Cleave',
-    description: 'Does damage to the Monsters on either side of the main target.',
+    description: 'Melee attacks also strike adjacent enemies for full attack damage. Unlike Blast, it is not a half-damage splash effect.',
     type: 'attack',
   },
   Dodge: {
@@ -250,6 +265,21 @@ export const ABILITY_METAS: Record<Ability, AbilityMeta> = {
     name: 'Cripple',
     description: 'Each time an enemy is hit by this Monster, their max health is reduced by 1.',
     type: 'debuff',
+  },
+  Scavenger: {
+    name: 'Scavenger',
+    description: 'Gains 1 maximum Health each time any Monster dies.',
+    type: 'buff',
+  },
+  Untrainable: {
+    name: 'Untrainable',
+    description: 'This Monster cannot gain additional abilities during battle.',
+    type: 'passive',
+  },
+  'Weapons Training': {
+    name: 'Weapons Training',
+    description: 'Adjacent friendly Monsters with no attack gain this Monster\'s attack type and attack value.',
+    type: 'buff',
   },
 };
 

@@ -3,6 +3,7 @@ import { PvEChallenge, TeamSelection } from '../types/battle';
 import { CardDefinition, Splinter, AttackType } from '../types/card';
 import { RULESET_METADATA } from '../types/ruleset';
 import { StorageService } from '../data/storage';
+import { isOfficialSplCardId } from '../data/cardIds';
 import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { CardPreview, SPLINTER_BG_COLORS } from './CardPreview';
 import {
@@ -36,6 +37,8 @@ interface BattlePreparationProps {
   onBack: () => void;
   onLaunchBattle: (playerTeam: TeamSelection) => void;
   playerCollection?: PlayerCollectionState | null;
+  campaignCollection?: CardDefinition[];
+  campaignMana?: boolean;
   allowedEditions?: number[];
   allowedTiers?: Array<number | null>;
   allowGladiators?: boolean;
@@ -57,6 +60,8 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
   onBack,
   onLaunchBattle,
   playerCollection: propCollection,
+  campaignCollection,
+  campaignMana = false,
   allowedEditions,
   allowedTiers,
   allowGladiators = true,
@@ -64,9 +69,9 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
   maxCardLevel,
   maxCardLevelsByRarity,
 }) => {
-  const playerCollection = propCollection ?? StorageService.getPlayerCollection();
+  const playerCollection = campaignCollection ? null : propCollection ?? StorageService.getPlayerCollection();
   const campaignTiers = allowedTiers || allowedEditions;
-  const [filterMode, setFilterMode] = useState<'all' | 'owned_only'>(StorageService.getCollectionFilterMode());
+  const [filterMode, setFilterMode] = useState<'all' | 'owned_only'>(campaignCollection ? 'all' : StorageService.getCollectionFilterMode());
   const [isSummonerModalOpen, setIsSummonerModalOpen] = useState<boolean>(false);
 
   const isCardAllowedByCampaign = (tier?: number | null, edition?: number): boolean => {
@@ -81,6 +86,10 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
   const getCardOwnership = (card: CardDefinition): { isOwned: boolean; maxLevel: number } => {
     const cardMaxLevel = Math.min(RARITY_MAX_LEVEL[card.rarity], card.stats.length || 1);
     const campaignMaxLevel = maxCardLevelsByRarity?.[card.rarity] || maxCardLevel || Infinity;
+    if (campaignCollection) {
+      const available = campaignCollection.find((item) => item.id === card.id);
+      return { isOwned: Boolean(available), maxLevel: available ? Math.min(campaignMaxLevel, cardMaxLevel, Math.max(...available.stats.map((stat) => stat.level))) : 1 };
+    }
     if (!playerCollection || (filterMode === 'all' && (!campaignTiers || campaignTiers.length === 0))) {
       return { isOwned: true, maxLevel: Math.min(campaignMaxLevel, cardMaxLevel) };
     }
@@ -93,7 +102,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
 
     // 1. Try matching by card ID (e.g. spl_123 or direct number)
     let detailId: number | null = null;
-    if (card.id.startsWith('spl_')) {
+    if (isOfficialSplCardId(card.id)) {
       detailId = parseInt(card.id.replace('spl_', ''));
     } else if (!isNaN(Number(card.id))) {
       detailId = Number(card.id);
@@ -135,6 +144,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
   // Available summoners for allowed splinters
   const summoners = cards.filter((c) => {
     if (c.cardType !== 'Summoner') return false;
+    if (campaignCollection && !getCardOwnership(c).isOwned) return false;
     const editionRestricted = Boolean(playerCollection && campaignTiers && campaignTiers.length > 0);
     if (filterMode === 'owned_only' || editionRestricted) {
       if (filterMode === 'owned_only' && c.isCustom) return false;
@@ -147,6 +157,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
   // Fallback summoners if filterMode was too restrictive (only non-custom official summoners)
   const fallbackSummoners = cards.filter((c) => {
     if (c.cardType !== 'Summoner') return false;
+    if (campaignCollection && !getCardOwnership(c).isOwned) return false;
     if (filterMode === 'owned_only' && c.isCustom) return false;
     if (!challenge.allowedSplinters.includes(c.splinter) && c.splinter !== 'Neutral') return false;
     const editionRestricted = Boolean(playerCollection && campaignTiers && campaignTiers.length > 0);
@@ -261,6 +272,9 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
   ): { allowed: boolean; reason?: string } => {
     const stat = card.stats[0];
     if (!stat) return { allowed: false, reason: 'Invalid card stats' };
+    if (campaignCollection && !getCardOwnership(card).isOwned) {
+      return { allowed: false, reason: 'Not in your campaign collection' };
+    }
 
     // Element check:
     // - Neutral summoner: any allowed splinter + Neutral
@@ -413,7 +427,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
       return;
     }
     if (isManaOver) {
-      alert(`Mana limit exceeded! You have used ${totalManaUsed}/${challenge.manaCap} mana.`);
+      alert(`${campaignMana ? 'Not enough campaign mana' : 'Mana limit exceeded'}! You have used ${totalManaUsed}/${challenge.manaCap} mana.`);
       return;
     }
 
@@ -441,17 +455,12 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
             Back
           </button>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold font-fantasy text-slate-100">{challenge.name}</h2>
-              <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-600">
-                {challenge.difficulty}
-              </span>
-            </div>
+            <h2 className="text-xl font-bold font-fantasy text-slate-100">{challenge.name}</h2>
             <p className="text-xs text-slate-400 mt-0.5">{challenge.description}</p>
           </div>
         </div>
 
-        {/* Rulesets & Mana Cap Badges */}
+        {/* Rulesets & Mana Availability Badges */}
         <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto justify-end">
           <div
             className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-2 ${
@@ -462,7 +471,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
           >
             <Zap className="w-4 h-4" />
             <span>
-              Mana: <strong className="text-white">{totalManaUsed}</strong> / {challenge.manaCap}
+              {campaignMana ? 'Campaign Mana' : 'Mana'}: <strong className="text-white">{totalManaUsed}</strong> / {challenge.manaCap}
             </span>
           </div>
 
@@ -718,7 +727,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
               {isManaOver ? (
                 <div className="flex items-center gap-1.5 text-xs text-rose-400 font-bold">
                   <AlertTriangle className="w-4 h-4" />
-                  <span>Mana limit exceeded ({totalManaUsed}/{challenge.manaCap})</span>
+                  <span>{campaignMana ? 'Not enough campaign mana' : 'Mana limit exceeded'} ({totalManaUsed}/{challenge.manaCap})</span>
                 </div>
               ) : selectedMonsters.length === 0 ? (
                 <div className="text-xs text-slate-500 italic">
@@ -943,7 +952,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
       {/* VISUAL SUMMONER SELECTOR MODAL */}
       {isSummonerModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 space-y-4 animate-fade-in shadow-2xl">
+          <div className="menu-panel bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl p-6 space-y-4 animate-fade-in shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">

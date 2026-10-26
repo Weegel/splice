@@ -1,6 +1,7 @@
 import { CardDefinition } from '../types/card';
 import { PvEChallenge, BattleLog } from '../types/battle';
 import { CampaignDefinition } from '../types/campaign';
+import { LocalPlayerProfile } from '../types/profile';
 
 interface DirectoryPickerWindow extends Window {
   showDirectoryPicker?: (options?: { mode?: 'read' | 'readwrite' }) => Promise<FileSystemDirectoryHandle>;
@@ -27,13 +28,28 @@ export class LocalWorkspaceService {
     challenges: PvEChallenge[];
     campaigns: CampaignDefinition[];
     battleLogs: BattleLog[];
+    profiles: LocalPlayerProfile[] | null;
+    activeProfileId: string | null;
   }> {
     try {
       const response = await fetch('/__local_workspace_load');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch {
-      return { cards: [], challenges: [], campaigns: [], battleLogs: [] };
+      return { cards: [], challenges: [], campaigns: [], battleLogs: [], profiles: null, activeProfileId: null };
+    }
+  }
+
+  static async writeProfiles(profiles: LocalPlayerProfile[], activeProfileId: string | null): Promise<boolean> {
+    try {
+      const response = await fetch('/__local_profiles_save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profiles, activeProfileId }),
+      });
+      return response.ok;
+    } catch {
+      return false;
     }
   }
 
@@ -92,7 +108,11 @@ export class LocalWorkspaceService {
 
       const folder = await handle.getDirectoryHandle(kind, { create: true });
       const item = value as any;
-      const fileName = `${kind.slice(0, -1)}_${item.id || Date.now()}.json`;
+      const existingFileName = await this.findFileNameById(folder, item.id);
+      const baseName = kind === 'battles'
+        ? `battle_${this.normalizeFilePart(item.name || `${item.summoner1?.name || 'team_1'} vs ${item.summoner2?.name || 'team_2'}`)}`
+        : `${kind.slice(0, -1)}_${this.normalizeFilePart(item.id || Date.now())}`;
+      const fileName = existingFileName || await this.findAvailableFileName(folder, baseName);
       const fileHandle = await folder.getFileHandle(fileName, { create: true });
       const writable = await fileHandle.createWritable();
       await writable.write(JSON.stringify(value, null, 2));
@@ -121,8 +141,8 @@ export class LocalWorkspaceService {
       const permission = await this.ensurePermission(this.cachedHandle);
       if (permission !== 'granted') return false;
       const folder = await this.cachedHandle.getDirectoryHandle(kind, { create: true });
-      const fileName = `${kind.slice(0, -1)}_${id.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
-      await folder.removeEntry(fileName);
+      const fileName = await this.findFileNameById(folder, id);
+      if (fileName) await folder.removeEntry(fileName);
       return true;
     } catch (error: any) {
       if (error?.name !== 'NotFoundError') console.error('Could not delete local workspace file', error);
@@ -143,6 +163,42 @@ export class LocalWorkspaceService {
       return response.ok;
     } catch {
       return false;
+    }
+  }
+
+  private static normalizeFilePart(value: unknown): string {
+    return String(value || 'unnamed')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'unnamed';
+  }
+
+  private static async findFileNameById(folder: FileSystemDirectoryHandle, id: string): Promise<string | null> {
+    const iterableFolder = folder as FileSystemDirectoryHandle & {
+      entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+    };
+    for await (const [name, handle] of iterableFolder.entries()) {
+      if (handle.kind !== 'file' || !name.endsWith('.json')) continue;
+      try {
+        const value = JSON.parse(await (handle as FileSystemFileHandle).getFile().then((file) => file.text()));
+        if (value?.id === id) return name;
+      } catch {
+        // Invalid files are ignored while locating an existing creation.
+      }
+    }
+    return null;
+  }
+
+  private static async findAvailableFileName(folder: FileSystemDirectoryHandle, baseName: string): Promise<string> {
+    for (let suffix = 0; ; suffix++) {
+      const fileName = `${baseName}${suffix ? `(${suffix})` : ''}.json`;
+      try {
+        await folder.getFileHandle(fileName);
+      } catch (error: any) {
+        if (error?.name === 'NotFoundError') return fileName;
+        throw error;
+      }
     }
   }
 

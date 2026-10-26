@@ -1,6 +1,17 @@
 import { BattleEngine } from './battleEngine';
-import { DEFAULT_CARDS } from '../data/defaultCards';
 import { TeamSelection } from '../types/battle';
+import { CardDefinition } from '../types/card';
+import cardDetails from '../../local/all_cards.json';
+import { DEFAULT_PVE_CARDS, LEGACY_CARD_IDS_BY_API_ID } from '../data/defaultPveCards';
+import { SplinterlandsApiService, SplinterlandsRawCardDetail } from '../services/splinterlandsApi';
+
+const TEST_CARDS = [
+  ...(cardDetails as unknown as SplinterlandsRawCardDetail[])
+    .map((detail) => SplinterlandsApiService.convertRawDetailToCardDefinition(detail))
+    .filter((card) => card !== null)
+    .map((card) => ({ ...card, id: LEGACY_CARD_IDS_BY_API_ID[Number(card.id.replace(/^spl_/, ''))] || card.id })),
+  ...DEFAULT_PVE_CARDS,
+];
 
 function runTests() {
   console.log('=== Running Splinterlands Battle Engine Test Suite ===');
@@ -30,7 +41,7 @@ function runTests() {
       monsters: [{ cardId: 'mon_water_sea_monster', level: 1 }],
     };
 
-    const engine = new BattleEngine(DEFAULT_CARDS, ['Standard'], 20, team1, team2);
+    const engine = new BattleEngine(TEST_CARDS, ['Standard'], 20, team1, team2);
     const log = engine.resolve();
 
     assert(log.events.length > 5, 'Standard battle generates events stream');
@@ -54,7 +65,7 @@ function runTests() {
       monsters: [{ cardId: 'mon_water_sea_monster', level: 1 }], // 8 HP base
     };
 
-    const engine = new BattleEngine(DEFAULT_CARDS, ['Equalizer'], 20, team1, team2);
+    const engine = new BattleEngine(TEST_CARDS, ['Equalizer'], 20, team1, team2);
     const log = engine.resolve();
 
     const eqEvent = log.events.find((e) => e.type === 'RULESET_APPLIED' && e.ruleset === 'Equalizer');
@@ -74,7 +85,7 @@ function runTests() {
       monsters: [{ cardId: 'mon_fire_serpentine_spy', level: 1 }], // Non-flying, 1 HP
     };
 
-    const engine = new BattleEngine(DEFAULT_CARDS, ['Earthquake'], 20, team1, team2);
+    const engine = new BattleEngine(TEST_CARDS, ['Earthquake'], 20, team1, team2);
     const log = engine.resolve();
 
     const eqDamage = log.events.some((e) => e.type === 'EARTHQUAKE_TICK');
@@ -100,11 +111,58 @@ function runTests() {
       ],
     };
 
-    const engine = new BattleEngine(DEFAULT_CARDS, ['Explosive Weaponry'], 40, team1, team2);
+    const engine = new BattleEngine(TEST_CARDS, ['Explosive Weaponry'], 40, team1, team2);
     const log = engine.resolve();
 
     const blastEvents = log.events.filter((e) => e.type === 'BLAST_DAMAGE');
     assert(blastEvents.length > 0, 'Explosive Weaponry generates Blast damage on adjacent targets');
+  }
+
+  // TEST 5: Opponent Without a Summoner
+  {
+    const team1: TeamSelection = {
+      summonerId: 'sum_fire_malric',
+      summonerLevel: 1,
+      monsters: [{ cardId: 'mon_fire_living_lava', level: 1 }],
+    };
+    const team2: TeamSelection = {
+      summonerId: null,
+      summonerLevel: 1,
+      monsters: [{ cardId: 'mon_water_sea_monster', level: 1 }],
+    };
+
+    const log = new BattleEngine(TEST_CARDS, ['Standard'], 20, team1, team2).resolve();
+    assert(log.summoner2.name === 'No Summoner', 'Battle log labels a summoner-free team');
+    assert(log.events.some((event) => event.text.includes('Team 2 has no summoner; no buffs or debuffs applied')), 'A summoner-free team skips summoner buffs and debuffs');
+    assert(!log.events.some((event) => event.text.includes('empowered Team 2')), 'No summoner buffs are recorded for the summoner-free team');
+  }
+
+  // TEST 6: Charge Enables Melee Attacks From Any Position
+  {
+    const chargeMonster: CardDefinition = {
+      id: 'test_charge_monster',
+      name: 'Charge Test',
+      splinter: 'Fire',
+      cardType: 'Monster',
+      rarity: 'Common',
+      stats: [{ level: 1, mana: 3, attack: 2, attackType: 'Melee', speed: 3, armor: 0, health: 4, abilities: ['Charge'] }],
+    };
+    const team1: TeamSelection = {
+      summonerId: null,
+      summonerLevel: 1,
+      monsters: [
+        { cardId: 'mon_fire_living_lava', level: 1 },
+        { cardId: chargeMonster.id, level: 1 },
+      ],
+    };
+    const team2: TeamSelection = {
+      summonerId: null,
+      summonerLevel: 1,
+      monsters: [{ cardId: 'mon_water_sea_monster', level: 1 }],
+    };
+
+    const log = new BattleEngine([...TEST_CARDS, chargeMonster], ['Standard'], 30, team1, team2).resolve();
+    assert(log.events.some((event) => event.type === 'ATTACK' && event.actorName === chargeMonster.name), 'A melee monster with Charge attacks from the backline');
   }
 
   console.log(`\nResults: ${passed} Passed, ${failed} Failed\n`);

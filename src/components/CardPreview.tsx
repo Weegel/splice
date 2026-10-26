@@ -2,6 +2,7 @@ import React from 'react';
 import { CardDefinition, Splinter, AttackType, Rarity } from '../types/card';
 import { Swords, Zap, Crosshair, Sparkles, Heart, Shield, Wind, Sparkle } from 'lucide-react';
 import { ABILITY_METAS } from '../data/abilities';
+import { isOfficialSplCardId } from '../data/cardIds';
 
 interface CardPreviewProps {
   card: CardDefinition;
@@ -154,7 +155,7 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
         )}
 
         {/* Custom Card Badge (Only for user-forged or custom boss cards, never for official Splinterlands collection cards) */}
-        {card.isCustom && !card.id.startsWith('spl_') && showCustomBadge && (
+        {card.isCustom && !isOfficialSplCardId(card.id) && showCustomBadge && (
           <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-rose-950/90 border border-rose-500 text-rose-300 text-[9px] font-bold rounded">
             CUSTOM
           </div>

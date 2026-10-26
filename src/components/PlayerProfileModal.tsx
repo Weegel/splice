@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SplinterlandsApiService, PlayerCollectionState } from '../services/splinterlandsApi';
 import { StorageService } from '../data/storage';
+import { isOfficialSplCardId } from '../data/cardIds';
 import { CardDefinition } from '../types/card';
 import { CardPreview } from './CardPreview';
 import {
@@ -101,7 +102,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const getCardCollectionMeta = (card: CardDefinition) => {
     if (!playerCollection || !playerCollection.ownedCards) return null;
     let detailId: number | null = null;
-    if (card.id.startsWith('spl_')) {
+    if (isOfficialSplCardId(card.id)) {
       detailId = parseInt(card.id.replace('spl_', ''));
     } else if (!isNaN(Number(card.id))) {
       detailId = Number(card.id);
@@ -114,7 +115,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl p-6 text-slate-100 space-y-6 animate-fade-in">
+      <div className="menu-panel bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl shadow-2xl p-6 text-slate-100 space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">

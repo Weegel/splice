@@ -13,6 +13,7 @@ Copy-Item 'dist' (Join-Path $release 'dist') -Recurse
 New-Item -ItemType Directory -Path (Join-Path $release 'local\cards') -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $release 'local\battles') -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $release 'local\campaigns') -Force | Out-Null
+Copy-Item 'local\all_cards.json' (Join-Path $release 'local\all_cards.json')
 @'
 # Local Workspace
 

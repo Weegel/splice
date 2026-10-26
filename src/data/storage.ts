@@ -4,9 +4,11 @@ import { CampaignDefinition, CampaignRunState } from '../types/campaign';
 import { LocalPlayerProfile } from '../types/profile';
 import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { LocalWorkspaceService } from '../services/localWorkspace';
-import { DEFAULT_CARDS } from './defaultCards';
+import { DEFAULT_PVE_CARDS, LEGACY_CARD_IDS_BY_API_ID } from './defaultPveCards';
 import { DEFAULT_CHALLENGES } from './defaultChallenges';
 import { DEFAULT_CAMPAIGNS } from './defaultCampaigns';
+import { createCustomCardId, isOfficialSplCardId } from './cardIds';
+import { getCampaignPlayerCardIds, normalizeCampaignNodes } from './campaignEffects';
 
 const STORAGE_KEYS = {
   CARDS: 'splinter_custom_cards',
@@ -38,21 +40,43 @@ export class StorageService {
 
   static saveProfile(profile: LocalPlayerProfile): void {
     const profiles = this.getProfiles();
+    const normalizedName = profile.name.trim().toLocaleLowerCase();
+    if (profiles.some((item) => item.id !== profile.id && item.name.trim().toLocaleLowerCase() === normalizedName)) {
+      throw new Error(`A profile named "${profile.name.trim()}" already exists.`);
+    }
     const index = profiles.findIndex((item) => item.id === profile.id);
     if (index >= 0) profiles[index] = profile;
     else profiles.push(profile);
     localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE, profile.id);
+    void LocalWorkspaceService.writeProfiles(profiles, profile.id);
   }
 
   static createProfile(name: string): LocalPlayerProfile {
+    const cleanName = name.trim();
+    if (!cleanName) throw new Error('Enter a profile name.');
+    if (this.getProfiles().some((profile) => profile.name.trim().toLocaleLowerCase() === cleanName.toLocaleLowerCase())) {
+      throw new Error(`A profile named "${cleanName}" already exists.`);
+    }
     const profile: LocalPlayerProfile = {
       id: `profile_${Date.now()}`,
-      name: name.trim() || 'Player Profile',
+      name: cleanName,
       createdAt: Date.now(),
     };
     this.saveProfile(profile);
     return profile;
+  }
+
+  static hydrateProfiles(profiles: LocalPlayerProfile[], activeProfileId: string | null): void {
+    const uniqueProfiles = profiles.filter((profile, index, all) =>
+      all.findIndex((item) => item.name.trim().toLocaleLowerCase() === profile.name.trim().toLocaleLowerCase()) === index
+    );
+    localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(uniqueProfiles));
+    const activeId = uniqueProfiles.some((profile) => profile.id === activeProfileId)
+      ? activeProfileId
+      : uniqueProfiles[0]?.id || null;
+    if (activeId) localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE, activeId);
+    else localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROFILE);
   }
 
   static hydrateLocalCreations(data: {
@@ -90,7 +114,7 @@ export class StorageService {
 
     const campaigns = this.getCustomCampaigns();
     const campaignMap = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
-    (data.campaigns || []).forEach((campaign) => campaignMap.set(campaign.id, { ...campaign, isCustom: Boolean(campaign.isCustom) }));
+    (data.campaigns || []).forEach((campaign) => campaignMap.set(campaign.id, normalizeCampaignNodes({ ...campaign, isCustom: Boolean(campaign.isCustom) })));
     localStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(Array.from(campaignMap.values())));
 
     if (data.battleLogs && data.battleLogs.length > 0) {
@@ -105,36 +129,19 @@ export class StorageService {
   static getCards(): CardDefinition[] {
     try {
       const cardMap = new Map<string, CardDefinition>();
-      const nameMap = new Map<string, string>(); // normalized card name -> card ID
 
-      // 1. Base game cards
-      DEFAULT_CARDS.forEach((c) => {
-        cardMap.set(c.id, { ...c });
-        nameMap.set(c.name.toLowerCase().trim(), c.id);
-      });
-
-      // 2. Splinterlands API synced cards
+      // Official API cards are the base catalog. Keep legacy IDs used by bundled campaigns.
       const apiCards = this.getApiCards();
       apiCards.forEach((c) => {
-        const normName = c.name.toLowerCase().trim();
-        const existingId = nameMap.get(normName);
-        if (existingId) {
-          // Merge API stats into existing base card so we don't have duplicate cards
-          const existing = cardMap.get(existingId)!;
-          cardMap.set(existingId, {
-            ...existing,
-            ...c,
-            id: existingId,
-            summonerBuffs: existing.summonerBuffs || c.summonerBuffs,
-            isCustom: false,
-          });
-        } else {
-          cardMap.set(c.id, { ...c, isCustom: false });
-          nameMap.set(normName, c.id);
-        }
+        const apiId = Number(c.id.replace(/^spl_/, ''));
+        const id = LEGACY_CARD_IDS_BY_API_ID[apiId] || c.id;
+        cardMap.set(id, { ...c, id, isCustom: false });
       });
 
-      // 3. User-created custom cards
+      // Bundled and user-created PvE cards remain available beside the official catalog.
+      DEFAULT_PVE_CARDS.forEach((card) => {
+        cardMap.set(card.id, { ...card, isCustom: true });
+      });
       const customCards = this.getCustomCards();
       customCards.forEach((c) => {
         cardMap.set(c.id, { ...c, isCustom: true });
@@ -143,7 +150,7 @@ export class StorageService {
       return Array.from(cardMap.values());
     } catch (e) {
       console.error('Failed to load cards from storage', e);
-      return DEFAULT_CARDS;
+      return DEFAULT_PVE_CARDS;
     }
   }
 
@@ -152,8 +159,8 @@ export class StorageService {
       const stored = localStorage.getItem(STORAGE_KEYS.CARDS);
       if (!stored) return [];
       const list: CardDefinition[] = JSON.parse(stored);
-      // Ensure cards fetched from Splinterlands API (starting with spl_) are never flagged or stored as custom cards
-      const clean = list.filter((c) => !c.id.startsWith('spl_'));
+      // Exact spl_<number> IDs belong to official API cards.
+      const clean = list.filter((c) => !isOfficialSplCardId(c.id));
       if (clean.length !== list.length) {
         localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(clean));
       }
@@ -174,20 +181,21 @@ export class StorageService {
 
   static saveApiCards(newCards: CardDefinition[]): void {
     try {
-      const existing = this.getApiCards();
-      const map = new Map<string, CardDefinition>();
-      existing.forEach((c) => map.set(c.id, c));
-      newCards.forEach((c) => map.set(c.id, { ...c, isCustom: false }));
-      localStorage.setItem(STORAGE_KEYS.API_CARDS, JSON.stringify(Array.from(map.values())));
+      localStorage.setItem(STORAGE_KEYS.API_CARDS, JSON.stringify(newCards.map((card) => ({ ...card, isCustom: false }))));
     } catch (e) {
       console.error('Failed to save API cards', e);
     }
   }
 
-  static saveCard(card: CardDefinition): void {
+  static saveCard(card: CardDefinition): CardDefinition {
     const customCards = this.getCustomCards();
-    const existingIndex = customCards.findIndex((c) => c.id === card.id);
-    const updatedCard = { ...card, isCustom: true };
+    const existingIndex = card.id ? customCards.findIndex((c) => c.id === card.id) : -1;
+    const existingIds = this.getCards().map((existingCard) => existingCard.id);
+    const idIsAvailable = card.id && !existingIds.includes(card.id);
+    const id = existingIndex >= 0 || idIsAvailable
+      ? card.id
+      : createCustomCardId(card, existingIds);
+    const updatedCard = { ...card, id, isCustom: true };
     
     if (existingIndex >= 0) {
       customCards[existingIndex] = updatedCard;
@@ -197,11 +205,13 @@ export class StorageService {
     
     localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(customCards));
     void LocalWorkspaceService.writeCreation('cards', updatedCard);
+    return updatedCard;
   }
 
   static deleteCard(id: string): void {
     const customCards = this.getCustomCards().filter((c) => c.id !== id);
     localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(customCards));
+    void LocalWorkspaceService.deleteCreation('cards', id);
   }
 
   static exportCardsJson(includeDefaults = false): string {
@@ -289,6 +299,7 @@ export class StorageService {
   static deleteChallenge(id: string): void {
     const custom = this.getCustomChallenges().filter((c) => c.id !== id);
     localStorage.setItem(STORAGE_KEYS.CHALLENGES, JSON.stringify(custom));
+    void LocalWorkspaceService.deleteCreation('battles', id);
   }
 
   static exportChallengesJson(includeDefaults = false): string {
@@ -333,10 +344,10 @@ export class StorageService {
       if (!stored) {
         return DEFAULT_CAMPAIGNS;
       }
-      const customCampaigns: CampaignDefinition[] = JSON.parse(stored);
+      const customCampaigns = this.getCustomCampaigns();
       const campaignMap = new Map<string, CampaignDefinition>();
       DEFAULT_CAMPAIGNS.forEach((c) => campaignMap.set(c.id, c));
-      customCampaigns.forEach((c) => campaignMap.set(c.id, { ...c, isCustom: true }));
+      customCampaigns.forEach((c) => campaignMap.set(c.id, normalizeCampaignNodes({ ...c, isCustom: true })));
       return Array.from(campaignMap.values());
     } catch (e) {
       console.error('Failed to load campaigns', e);
@@ -347,13 +358,34 @@ export class StorageService {
   static getCustomCampaigns(): CampaignDefinition[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CAMPAIGNS);
-      return stored ? JSON.parse(stored) : [];
+      if (!stored) return [];
+      const campaigns = JSON.parse(stored) as CampaignDefinition[];
+      const emorId = 'campaign_custom_1791371731769';
+      const duplicateEmorId = 'campaign_splintered_paths_of_emor';
+      const duplicateIndex = campaigns.findIndex((campaign) => campaign.id === duplicateEmorId);
+      const canonical = campaigns.find((campaign) => campaign.id === emorId);
+      let migrated = false;
+      if (duplicateIndex >= 0 && !canonical) {
+        campaigns[duplicateIndex] = { ...campaigns[duplicateIndex], id: emorId };
+        migrated = true;
+      } else if (duplicateIndex >= 0 && canonical) {
+        const duplicate = campaigns[duplicateIndex];
+        const { id: _duplicateId, ...duplicateContent } = duplicate;
+        const { id: _canonicalId, ...canonicalContent } = canonical;
+        if (JSON.stringify(duplicateContent) === JSON.stringify(canonicalContent)) {
+          campaigns.splice(duplicateIndex, 1);
+          migrated = true;
+        }
+      }
+      if (migrated) localStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(campaigns));
+      return campaigns.map(normalizeCampaignNodes);
     } catch {
       return [];
     }
   }
 
   static saveCampaign(campaign: CampaignDefinition): void {
+    campaign = normalizeCampaignNodes(campaign);
     const custom = this.getCustomCampaigns();
     const idx = custom.findIndex((c) => c.id === campaign.id);
     const inlineChallenges = Object.values(campaign.nodes)
@@ -370,14 +402,18 @@ export class StorageService {
       .map((challenge) => ({ ...challenge })),
       ...inlineChallenges,
     ];
-    const referencedCardIds = embeddedChallenges.flatMap((challenge) => [
-      challenge.enemyTeam.summonerId,
-      ...challenge.enemyTeam.monsters.map((monster) => monster.cardId),
-      ...(challenge.embeddedCards || []).map((card) => card.id),
-    ]);
-    const embeddedCards = this.getCards()
-      .filter((card) => referencedCardIds.includes(card.id))
-      .map((card) => ({ ...card }));
+    const referencedCardIds = [
+      ...getCampaignPlayerCardIds(campaign),
+      ...embeddedChallenges.flatMap((challenge) => [
+        challenge.enemyTeam.summonerId,
+        ...challenge.enemyTeam.monsters.map((monster) => monster.cardId),
+        ...(challenge.embeddedCards || []).map((card) => card.id),
+      ]),
+    ];
+    const embeddedCards = [...new Map([
+      ...(campaign.embeddedCards || []),
+      ...this.getCards().filter((card) => referencedCardIds.includes(card.id)),
+    ].map((card) => [card.id, { ...card }])).values()];
     const updated = { ...campaign, isCustom: true, embeddedCards, embeddedChallenges };
     if (idx >= 0) {
       custom[idx] = updated;
@@ -419,7 +455,7 @@ export class StorageService {
       let count = 0;
       for (const camp of parsed) {
         if (camp.id && camp.name && camp.nodes && camp.startNodeId) {
-          map.set(camp.id, { ...camp, isCustom: true });
+          map.set(camp.id, normalizeCampaignNodes({ ...camp, isCustom: true }));
           count++;
         }
       }

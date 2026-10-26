@@ -7,7 +7,7 @@ export interface MonsterSelection {
 }
 
 export interface TeamSelection {
-  summonerId: string;
+  summonerId: string | null;
   summonerLevel: number;
   monsters: MonsterSelection[];
 }
@@ -16,7 +16,6 @@ export interface PvEChallenge {
   id: string;
   name: string;
   description: string;
-  difficulty: 'Novice' | 'Bronze' | 'Silver' | 'Gold' | 'Diamond' | 'Boss';
   manaCap: number;
   rulesets: RulesetName[];
   allowedSplinters: Splinter[];
@@ -68,7 +67,7 @@ export interface CombatMonsterState {
 
 export interface CombatTeamState {
   teamIndex: 1 | 2;
-  summonerId: string;
+  summonerId: string | null;
   summonerName: string;
   summonerSplinter: Splinter;
   summonerLevel: number;

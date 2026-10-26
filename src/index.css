@@ -21,6 +21,42 @@
   animation: fadeIn 0.25s ease-out forwards;
 }
 
+@layer components {
+  .menu-panel {
+    max-height: calc(100dvh - 2rem);
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .menu-panel > :first-child {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    background-color: inherit;
+  }
+
+  .menu-panel.flex-col {
+    overflow: hidden;
+  }
+
+  .menu-panel.flex-col > :not(.overflow-y-auto) {
+    flex-shrink: 0;
+  }
+
+  .menu-panel.flex-col > .overflow-y-auto {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  .menu-panel .overflow-y-auto {
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

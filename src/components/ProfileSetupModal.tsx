@@ -5,7 +5,7 @@ import { UserRound, Plus, Check, RefreshCw, Unplug } from 'lucide-react';
 interface ProfileSetupModalProps {
   profiles: LocalPlayerProfile[];
   isOpen: boolean;
-  onCreate: (name: string) => void;
+  onCreate: (name: string) => string | null;
   onSelect: (profile: LocalPlayerProfile) => void;
   onSync: (profile: LocalPlayerProfile) => void;
   onDisconnect: (profile: LocalPlayerProfile) => void;
@@ -13,12 +13,13 @@ interface ProfileSetupModalProps {
 
 export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ profiles, isOpen, onCreate, onSelect, onSync, onDisconnect }) => {
   const [name, setName] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-amber-500/60 rounded-3xl p-6 shadow-2xl space-y-5">
-        <div className="flex items-center gap-3">
+      <div className="w-full max-w-md max-h-[calc(100dvh_-_2rem)] min-h-0 overflow-hidden bg-slate-900 border border-amber-500/60 rounded-3xl p-6 shadow-2xl flex flex-col gap-5">
+        <div className="shrink-0 flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-amber-600 flex items-center justify-center text-white"><UserRound /></div>
           <div>
             <h2 className="text-xl font-bold font-fantasy text-amber-400">Choose Player Profile</h2>
@@ -27,7 +28,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ profiles, 
         </div>
 
         {profiles.length > 0 && (
-          <div className="space-y-2">
+          <div className="min-h-0 overflow-y-auto overscroll-contain space-y-2 pr-2 [scrollbar-gutter:stable]">
             <div className="text-xs font-bold uppercase text-slate-400">Existing Profiles</div>
             {profiles.map((profile) => (
               <div key={profile.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
@@ -55,10 +56,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ profiles, 
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="shrink-0 space-y-2">
           <label className="text-xs font-bold uppercase text-slate-400">Create New Profile</label>
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Forestwalker" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500" />
-          <button onClick={() => onCreate(name)} disabled={!name.trim()} className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-rose-600 disabled:opacity-40 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Create Profile</button>
+          <input value={name} onChange={(event) => { setName(event.target.value); setErrorMessage(null); }} placeholder="e.g. Forestwalker" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500" />
+          {errorMessage && <div className="text-xs text-rose-300">{errorMessage}</div>}
+          <button onClick={() => setErrorMessage(onCreate(name))} disabled={!name.trim()} className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-rose-600 disabled:opacity-40 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"><Plus className="w-4 h-4" /> Create Profile</button>
         </div>
       </div>
     </div>

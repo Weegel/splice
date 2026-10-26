@@ -357,7 +357,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       {/* Card Picker Modal */}
       {pickerState.isOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-5 space-y-4">
+          <div className="menu-panel bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-bold font-fantasy text-slate-100">
                 {pickerState.slot === 'summoner' ? 'Select Summoner' : 'Select Monster'}

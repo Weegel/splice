@@ -12,6 +12,8 @@ export type Ability =
   | 'Snipe'
   | 'Opportunity'
   | 'Reach'
+  | 'Charge'
+  | 'Ambush'
   | 'Taunt'
   | 'Blast'
   | 'Shield'
@@ -56,7 +58,11 @@ export type Ability =
   | 'Knock Out'
   | 'Retaliate'
   | 'Fury'
-  | 'Cripple';
+  | 'Cripple'
+  | 'Immunity'
+  | 'Scavenger'
+  | 'Untrainable'
+  | 'Weapons Training';
 
 export interface CardStatLevel {
   level: number;

@@ -1,5 +1,4 @@
 import { CardDefinition, CardStatLevel, Splinter, CardType, AttackType, Rarity, Ability } from '../types/card';
-import { DEFAULT_CARDS } from '../data/defaultCards';
 
 export interface SplinterlandsRawCardDetail {
   id: number;
@@ -74,6 +73,18 @@ export class SplinterlandsApiService {
     }
 
     try {
+      const response = await fetch('/__splinterlands_card_catalog');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        this.cardDetailsCache = data;
+        return data;
+      }
+    } catch {
+      // Static hosting has no local-file endpoint; use browser cache or the API.
+    }
+
+    try {
       const cached = localStorage.getItem(CARD_DETAILS_CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
@@ -109,8 +120,15 @@ export class SplinterlandsApiService {
       }
     }
 
-    console.warn('Splinterlands API get_details failed, falling back to local dataset', lastError);
+    console.warn('Splinterlands card details cache and API are unavailable', lastError);
     return [];
+  }
+
+  static async fetchCardCatalog(): Promise<CardDefinition[]> {
+    const details = await this.fetchCardDetails();
+    return details
+      .map((detail) => this.convertRawDetailToCardDefinition(detail))
+      .filter((card): card is CardDefinition => card !== null);
   }
 
   /**
@@ -291,6 +309,10 @@ export class SplinterlandsApiService {
    */
   static convertRawDetailToCardDefinition(detail: SplinterlandsRawCardDetail): CardDefinition | null {
     try {
+      if (!detail.stats || (!('mana' in detail.stats) && detail.type !== 'Summoner')) {
+        return null;
+      }
+
       const splinter = SPLINTER_COLOR_MAP[detail.color] || 'Neutral';
       const cardType: CardType = detail.type === 'Summoner' ? 'Summoner' : 'Monster';
       const rarity = RARITY_MAP[detail.rarity] || 'Common';
@@ -376,13 +398,27 @@ export class SplinterlandsApiService {
       // If summoner, parse summoner buffs/debuffs/abilities granted from stats
       let summonerBuffs = undefined;
       if (cardType === 'Summoner') {
+        const signedBuff = (value: number | number[] | undefined) =>
+          typeof value === 'number' ? value : value?.[0] || undefined;
+        const melee = signedBuff(statsObj.attack);
+        const ranged = signedBuff(statsObj.ranged);
+        const magic = signedBuff(statsObj.magic);
+        const speed = signedBuff(statsObj.speed);
+        const armor = signedBuff(statsObj.armor);
+        const health = signedBuff(statsObj.health);
         summonerBuffs = {
-          melee: typeof statsObj.attack === 'number' ? statsObj.attack : statsObj.attack?.[0] || undefined,
-          ranged: typeof statsObj.ranged === 'number' ? statsObj.ranged : statsObj.ranged?.[0] || undefined,
-          magic: typeof statsObj.magic === 'number' ? statsObj.magic : statsObj.magic?.[0] || undefined,
-          speed: typeof statsObj.speed === 'number' ? statsObj.speed : statsObj.speed?.[0] || undefined,
-          armor: typeof statsObj.armor === 'number' ? statsObj.armor : statsObj.armor?.[0] || undefined,
-          health: typeof statsObj.health === 'number' ? statsObj.health : statsObj.health?.[0] || undefined,
+          melee: melee && melee > 0 ? melee : undefined,
+          ranged: ranged && ranged > 0 ? ranged : undefined,
+          magic: magic && magic > 0 ? magic : undefined,
+          speed: speed && speed > 0 ? speed : undefined,
+          armor: armor && armor > 0 ? armor : undefined,
+          health: health && health > 0 ? health : undefined,
+          enemyMelee: melee && melee < 0 ? melee : undefined,
+          enemyRanged: ranged && ranged < 0 ? ranged : undefined,
+          enemyMagic: magic && magic < 0 ? magic : undefined,
+          enemySpeed: speed && speed < 0 ? speed : undefined,
+          enemyArmor: armor && armor < 0 ? armor : undefined,
+          enemyHealth: health && health < 0 ? health : undefined,
           abilitiesGranted: Array.isArray(statsObj.abilities)
             ? (statsObj.abilities.flat().filter((a: any) => typeof a === 'string') as Ability[])
             : undefined,

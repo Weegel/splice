@@ -19,6 +19,7 @@ import {
   X,
   Sparkles,
   Award,
+  Search,
 } from 'lucide-react';
 
 interface ChallengeBuilderProps {
@@ -27,15 +28,6 @@ interface ChallengeBuilderProps {
   onChallengesUpdated: () => void;
   onStartChallenge: (challenge: PvEChallenge) => void;
 }
-
-const DIFFICULTY_COLORS: Record<string, string> = {
-  Novice: 'bg-emerald-950 text-emerald-400 border-emerald-600',
-  Bronze: 'bg-amber-950 text-amber-400 border-amber-600',
-  Silver: 'bg-slate-800 text-slate-300 border-slate-500',
-  Gold: 'bg-yellow-950 text-yellow-300 border-yellow-500',
-  Diamond: 'bg-cyan-950 text-cyan-300 border-cyan-400',
-  Boss: 'bg-rose-950 text-rose-300 border-rose-500 font-extrabold shadow-rose-500/30',
-};
 
 export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
   challenges,
@@ -50,6 +42,8 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
   }>({ isOpen: false, slot: 'summoner' });
 
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [monsterSearchQuery, setMonsterSearchQuery] = useState('');
+  const [monsterSplinterFilter, setMonsterSplinterFilter] = useState<Splinter | 'ALL'>('ALL');
 
   const showFeedback = (msg: string) => {
     setFeedback(msg);
@@ -58,6 +52,16 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
 
   const summonerCards = cards.filter((c) => c.cardType === 'Summoner');
   const monsterCards = cards.filter((c) => c.cardType === 'Monster');
+  const filteredMonsterCards = monsterCards.filter((card) =>
+    (monsterSplinterFilter === 'ALL' || card.splinter === monsterSplinterFilter) &&
+    card.name.toLowerCase().includes(monsterSearchQuery.trim().toLowerCase())
+  );
+
+  const openCardPicker = (slot: 'summoner' | number) => {
+    setMonsterSearchQuery('');
+    setMonsterSplinterFilter('ALL');
+    setCardSelectModal({ isOpen: true, slot });
+  };
 
   const handleCreateNew = () => {
     const defaultSummoner = summonerCards[0] || cards[0];
@@ -67,7 +71,6 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
       id: `pve_custom_${Date.now()}`,
       name: 'Custom PvE Gauntlet',
       description: 'A newly designed combat challenge for aspiring champions.',
-      difficulty: 'Silver',
       manaCap: 25,
       rulesets: ['Standard'],
       allowedSplinters: ['Fire', 'Water', 'Earth', 'Life', 'Death', 'Dragon', 'Neutral'],
@@ -200,12 +203,7 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
 
   const addMonsterSlot = () => {
     if (!editingChallenge || editingChallenge.enemyTeam.monsters.length >= 6) return;
-    const defaultMonster = monsterCards[0] || cards[0];
-    const monsters = [...editingChallenge.enemyTeam.monsters, { cardId: defaultMonster.id, level: 1 }];
-    setEditingChallenge({
-      ...editingChallenge,
-      enemyTeam: { ...editingChallenge.enemyTeam, monsters },
-    });
+    openCardPicker(editingChallenge.enemyTeam.monsters.length);
   };
 
   const removeMonsterSlot = (index: number) => {
@@ -300,16 +298,7 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
               key={ch.id}
               className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 flex flex-col justify-between transition-all hover:shadow-xl shadow-slate-950/50 relative overflow-hidden group"
             >
-              {/* Difficulty Banner */}
-              <div className="flex items-center justify-between mb-3">
-                <span
-                  className={`text-xs px-2.5 py-0.5 rounded-full border font-bold uppercase tracking-wider ${
-                    DIFFICULTY_COLORS[ch.difficulty] || 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  {ch.difficulty}
-                </span>
-
+              <div className="flex items-center justify-end mb-3">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-950/60 border border-blue-800/80 px-2.5 py-0.5 rounded-lg">
                     <span>Mana:</span>
@@ -344,7 +333,7 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
               <div className="mt-4 pt-3 border-t border-slate-800/80">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                   <span>Opponent Lineup</span>
-                  <span className="text-amber-400">{enemySummoner?.name || 'Summoner'}</span>
+                  <span className="text-amber-400">{enemySummoner?.name || 'No Summoner'}</span>
                 </div>
                 <div className="flex items-center gap-1 overflow-x-auto py-1">
                   {enemyMonsters.map((m, idx) => (
@@ -416,9 +405,9 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
 
       {/* CHALLENGE CREATOR / EDITOR MODAL */}
       {editingChallenge && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 text-slate-100 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-hidden">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[calc(100dvh_-_2rem)] min-h-0 overflow-hidden shadow-2xl p-6 text-slate-100 flex flex-col gap-6">
+            <div className="shrink-0 flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-xl font-bold font-fantasy text-amber-400 flex items-center gap-2">
                 <Flame className="w-5 h-5 text-rose-500" />
                 {editingChallenge.isCustom ? 'PvE Challenge Forge' : `Edit: ${editingChallenge.name}`}
@@ -432,8 +421,9 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
             </div>
 
             {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-6 pr-2 [scrollbar-gutter:stable]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1">Challenge Name</label>
                 <input
                   type="text"
@@ -441,22 +431,6 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
                   onChange={(e) => setEditingChallenge({ ...editingChallenge, name: e.target.value })}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Difficulty</label>
-                <select
-                  value={editingChallenge.difficulty}
-                  onChange={(e) => setEditingChallenge({ ...editingChallenge, difficulty: e.target.value as any })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-500"
-                >
-                  <option value="Novice">Novice</option>
-                  <option value="Bronze">Bronze</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Diamond">Diamond</option>
-                  <option value="Boss">Boss</option>
-                </select>
               </div>
 
               <div>
@@ -555,15 +529,24 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
                 <div className="text-xs font-bold text-slate-400 w-20">Summoner:</div>
                 <div className="flex-1 flex items-center justify-between">
                   <span className="font-bold text-slate-200">
-                    {cards.find((c) => c.id === editingChallenge.enemyTeam.summonerId)?.name || 'Select Summoner'}
+                    {editingChallenge.enemyTeam.summonerId ? cards.find((c) => c.id === editingChallenge.enemyTeam.summonerId)?.name || 'Select Summoner' : 'No Summoner'}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setCardSelectModal({ isOpen: true, slot: 'summoner' })}
-                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-amber-400 border border-slate-700"
-                  >
-                    Change Summoner
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openCardPicker('summoner')}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-amber-400 border border-slate-700"
+                    >
+                      Choose Summoner
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingChallenge({ ...editingChallenge, enemyTeam: { ...editingChallenge.enemyTeam, summonerId: null } })}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg border ${editingChallenge.enemyTeam.summonerId === null ? 'bg-amber-950 text-amber-300 border-amber-600' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'}`}
+                    >
+                      No Summoner
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -616,7 +599,7 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
                       {/* Position & Change */}
                       <button
                         type="button"
-                        onClick={() => setCardSelectModal({ isOpen: true, slot: idx })}
+                        onClick={() => openCardPicker(idx)}
                         className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 border border-slate-700"
                       >
                         Change
@@ -658,7 +641,8 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+            </div>
+            <div className="shrink-0 flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setEditingChallenge(null)}
@@ -682,7 +666,7 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
       {/* CARD PICKER MODAL (For Opponent Team) */}
       {cardSelectModal.isOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-5 space-y-4">
+          <div className="menu-panel bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-bold font-fantasy text-slate-100">
                 {cardSelectModal.slot === 'summoner' ? 'Choose Opponent Summoner' : 'Choose Opponent Monster'}
@@ -695,8 +679,35 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
               </button>
             </div>
 
+            {cardSelectModal.slot !== 'summoner' && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_12rem] gap-3">
+                <label className="relative block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="search"
+                    aria-label="Search opponent monsters"
+                    placeholder="Search monsters"
+                    value={monsterSearchQuery}
+                    onChange={(event) => setMonsterSearchQuery(event.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100"
+                  />
+                </label>
+                <label className="text-xs text-slate-400">
+                  Splinter
+                  <select
+                    value={monsterSplinterFilter}
+                    onChange={(event) => setMonsterSplinterFilter(event.target.value as Splinter | 'ALL')}
+                    className="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+                  >
+                    <option value="ALL">All splinters</option>
+                    {ALL_SPLINTERS.map((splinter) => <option key={splinter} value={splinter}>{splinter}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto p-1">
-              {(cardSelectModal.slot === 'summoner' ? summonerCards : monsterCards).map((card) => (
+              {(cardSelectModal.slot === 'summoner' ? summonerCards : filteredMonsterCards).map((card) => (
                 <div key={card.id} className="flex justify-center">
                   <CardPreview
                     card={card}
@@ -721,6 +732,9 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
                   />
                 </div>
               ))}
+              {cardSelectModal.slot !== 'summoner' && !filteredMonsterCards.length && (
+                <p className="col-span-full py-8 text-center text-sm text-slate-500">No monsters match these filters.</p>
+              )}
             </div>
           </div>
         </div>

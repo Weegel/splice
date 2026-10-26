@@ -23,8 +23,8 @@ export class BattleEngine {
 
   private team1Monsters: CombatMonsterState[] = [];
   private team2Monsters: CombatMonsterState[] = [];
-  private team1Summoner!: CardDefinition;
-  private team2Summoner!: CardDefinition;
+  private team1Summoner: CardDefinition | null = null;
+  private team2Summoner: CardDefinition | null = null;
   private team1SummonerAbilities: Ability[] = [];
   private team2SummonerAbilities: Ability[] = [];
   private auraDeltas = new Map<string, { attack: number; speed: number; armor: number; maxHealth: number; health: number }>();
@@ -159,8 +159,8 @@ export class BattleEngine {
     this.auraDeltas.clear();
 
     // Load summoners
-    this.team1Summoner = this.getCard(this.team1Selection.summonerId);
-    this.team2Summoner = this.getCard(this.team2Selection.summonerId);
+    this.team1Summoner = this.team1Selection.summonerId ? this.getCard(this.team1Selection.summonerId) : null;
+    this.team2Summoner = this.team2Selection.summonerId ? this.getCard(this.team2Selection.summonerId) : null;
 
     // Instantiate monster states
     this.team1Monsters = this.team1Selection.monsters.map((m, idx) =>
@@ -173,7 +173,7 @@ export class BattleEngine {
     const initialSnapshot1 = this.team1Monsters.map((m) => ({ ...m, abilities: [...m.abilities] }));
     const initialSnapshot2 = this.team2Monsters.map((m) => ({ ...m, abilities: [...m.abilities] }));
 
-    this.addEvent('BATTLE_INIT', `Battle initialized: Team 1 (${this.team1Summoner.name}) vs Team 2 (${this.team2Summoner.name})`);
+    this.addEvent('BATTLE_INIT', `Battle initialized: Team 1 (${this.team1Summoner?.name || 'No Summoner'}) vs Team 2 (${this.team2Summoner?.name || 'No Summoner'})`);
 
     // --- RULES & SUMMONER SETUP PHASE ---
     this.applyRulesetsAndSummoners();
@@ -192,10 +192,10 @@ export class BattleEngine {
 
     if (team1Alive && !team2Alive) {
       winner = 1;
-      this.addEvent('BATTLE_END', `Team 1 (${this.team1Summoner.name}) emerges victorious!`);
+      this.addEvent('BATTLE_END', `Team 1 (${this.team1Summoner?.name || 'No Summoner'}) emerges victorious!`);
     } else if (!team1Alive && team2Alive) {
       winner = 2;
-      this.addEvent('BATTLE_END', `Team 2 (${this.team2Summoner.name}) emerges victorious!`);
+      this.addEvent('BATTLE_END', `Team 2 (${this.team2Summoner?.name || 'No Summoner'}) emerges victorious!`);
     } else {
       winner = 0;
       this.addEvent('BATTLE_END', `The battle ended in a Draw after ${this.currentRound} rounds.`);
@@ -213,13 +213,13 @@ export class BattleEngine {
       initialTeam1: initialSnapshot1,
       initialTeam2: initialSnapshot2,
       summoner1: {
-        name: this.team1Summoner.name,
-        splinter: this.team1Summoner.splinter,
+        name: this.team1Summoner?.name || 'No Summoner',
+        splinter: this.team1Summoner?.splinter || 'Neutral',
         level: this.team1Selection.summonerLevel,
       },
       summoner2: {
-        name: this.team2Summoner.name,
-        splinter: this.team2Summoner.splinter,
+        name: this.team2Summoner?.name || 'No Summoner',
+        splinter: this.team2Summoner?.splinter || 'Neutral',
         level: this.team2Selection.summonerLevel,
       },
       events: this.events,
@@ -354,8 +354,18 @@ export class BattleEngine {
 
     // Summoner buffs & debuffs (if not Silenced Summoners)
     if (!this.hasRuleset('Silenced Summoners')) {
-      this.applySummoner(this.team1Summoner, this.team1Selection.summonerLevel, this.team1Monsters, this.team2Monsters, 1);
-      this.applySummoner(this.team2Summoner, this.team2Selection.summonerLevel, this.team2Monsters, this.team1Monsters, 2);
+      if (this.team1Summoner) {
+        this.applySummoner(this.team1Summoner, this.team1Selection.summonerLevel, this.team1Monsters, this.team2Monsters, 1);
+      } else {
+        this.team1SummonerAbilities = [];
+        this.addEvent('SUMMONER_APPLY', 'Team 1 has no summoner; no buffs or debuffs applied');
+      }
+      if (this.team2Summoner) {
+        this.applySummoner(this.team2Summoner, this.team2Selection.summonerLevel, this.team2Monsters, this.team1Monsters, 2);
+      } else {
+        this.team2SummonerAbilities = [];
+        this.addEvent('SUMMONER_APPLY', 'Team 2 has no summoner; no buffs or debuffs applied');
+      }
     } else {
       this.addEvent('RULESET_APPLIED', 'Silenced Summoners: Summoners grant no buffs or debuffs', {
         ruleset: 'Silenced Summoners',
@@ -702,8 +712,9 @@ export class BattleEngine {
       const hasSneak = actor.abilities.includes('Sneak');
       const hasOpportunity = actor.abilities.includes('Opportunity');
       const hasReach = actor.abilities.includes('Reach');
+      const hasCharge = actor.abilities.includes('Charge');
 
-      if (actorPos === 0) {
+      if (actorPos === 0 || hasCharge) {
         // Can attack from frontline
       } else if (actorPos === 1 && hasReach) {
         // Can attack with Reach from pos 2
