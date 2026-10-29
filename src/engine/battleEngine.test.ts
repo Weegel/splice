@@ -165,6 +165,29 @@ function runTests() {
     assert(log.events.some((event) => event.type === 'ATTACK' && event.actorName === chargeMonster.name), 'A melee monster with Charge attacks from the backline');
   }
 
+  // TEST 7: Poison ticks after monster turns at round end
+  {
+    const poisonTestCard: CardDefinition = {
+      id: 'test_round_end_poison',
+      name: 'Round End Poison Test',
+      splinter: 'Fire',
+      cardType: 'Monster',
+      rarity: 'Common',
+      stats: [{ level: 1, mana: 1, attack: 1, attackType: 'Melee', speed: 1, armor: 0, health: 20, abilities: [] }],
+    };
+    const team: TeamSelection = {
+      summonerId: null,
+      summonerLevel: 1,
+      monsters: [{ cardId: poisonTestCard.id, level: 1 }],
+    };
+    const log = new BattleEngine([...TEST_CARDS, poisonTestCard], ['Noxious Fumes'], 2, team, team).resolve();
+    const roundOneEvents = log.events.filter((event) => event.round === 1);
+    const firstPoisonIndex = roundOneEvents.findIndex((event) => event.type === 'POISON_TICK');
+    const lastAttackIndex = roundOneEvents.reduce((last, event, index) => event.type === 'ATTACK' ? index : last, -1);
+    const roundEndIndex = roundOneEvents.findIndex((event) => event.type === 'ROUND_END');
+    assert(lastAttackIndex >= 0 && lastAttackIndex < firstPoisonIndex && firstPoisonIndex < roundEndIndex, 'Noxious Fumes Poison ticks after attacks at round end');
+  }
+
   console.log(`\nResults: ${passed} Passed, ${failed} Failed\n`);
 }
 

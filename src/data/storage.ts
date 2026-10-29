@@ -360,22 +360,20 @@ export class StorageService {
       const stored = localStorage.getItem(STORAGE_KEYS.CAMPAIGNS);
       if (!stored) return [];
       const campaigns = JSON.parse(stored) as CampaignDefinition[];
-      const emorId = 'campaign_custom_1791371731769';
-      const duplicateEmorId = 'campaign_splintered_paths_of_emor';
-      const duplicateIndex = campaigns.findIndex((campaign) => campaign.id === duplicateEmorId);
-      const canonical = campaigns.find((campaign) => campaign.id === emorId);
+      const legacyEmorId = 'campaign_custom_1791371731769';
+      const canonicalEmorId = 'campaign_splintered_paths_of_emor';
+      const legacyIndex = campaigns.findIndex((campaign) => campaign.id === legacyEmorId);
       let migrated = false;
-      if (duplicateIndex >= 0 && !canonical) {
-        campaigns[duplicateIndex] = { ...campaigns[duplicateIndex], id: emorId };
-        migrated = true;
-      } else if (duplicateIndex >= 0 && canonical) {
-        const duplicate = campaigns[duplicateIndex];
-        const { id: _duplicateId, ...duplicateContent } = duplicate;
-        const { id: _canonicalId, ...canonicalContent } = canonical;
-        if (JSON.stringify(duplicateContent) === JSON.stringify(canonicalContent)) {
-          campaigns.splice(duplicateIndex, 1);
-          migrated = true;
+      if (legacyIndex >= 0) {
+        const canonicalIndex = campaigns.findIndex((campaign) => campaign.id === canonicalEmorId);
+        const legacyCampaign = { ...campaigns[legacyIndex], id: canonicalEmorId };
+        if (canonicalIndex >= 0) {
+          campaigns[canonicalIndex] = { ...campaigns[canonicalIndex], ...legacyCampaign };
+          campaigns.splice(legacyIndex, 1);
+        } else {
+          campaigns[legacyIndex] = legacyCampaign;
         }
+        migrated = true;
       }
       if (migrated) localStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(campaigns));
       return campaigns.map(normalizeCampaignNodes);

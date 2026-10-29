@@ -60,7 +60,7 @@ export const DEFAULT_CHALLENGES: PvEChallenge[] = [
   {
     id: 'pve_challenge_4',
     name: 'Crypt of Noxious Fumes',
-    description: 'Poison fills the dungeon air. All units lose 2 health each turn. Healing and high health are paramount.',
+    description: 'Poison fills the dungeon air. All monsters take 2 direct Health damage at the end of each round. Healing and high health are paramount.',
     manaCap: 28,
     rulesets: ['Noxious Fumes', 'Reverse Speed'],
     allowedSplinters: ['Fire', 'Water', 'Earth', 'Life', 'Death', 'Dragon', 'Neutral'],

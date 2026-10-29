@@ -21,8 +21,10 @@ import { CampaignEncounterGraph } from './CampaignEncounterGraph';
 import { CampaignShopEditor } from './CampaignShopEditor';
 import { CampaignItemsModal } from './CampaignItemsModal';
 import { CampaignUnlocksModal } from './CampaignUnlocksModal';
+import { CampaignActionsModal } from './CampaignActionsModal';
 import { CampaignPreconditionsEditor } from './CampaignPreconditionsEditor';
 import { CampaignItemSelect } from './CampaignItemSelect';
+import { CampaignNodePicker } from './CampaignNodePicker';
 import { getCampaignItems, saveCampaignItem } from '../data/campaignItems';
 import {
   BookOpen,
@@ -132,6 +134,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [autosaveStatus, setAutosaveStatus] = useState<'saving' | 'saved' | 'error'>('saved');
   const pendingCampaign = useRef<CampaignDefinition | null>(null);
+  const lastSavedCampaign = useRef<string | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [collectionSearch, setCollectionSearch] = useState('');
   const [collectionSplinter, setCollectionSplinter] = useState<Splinter | 'ALL'>('ALL');
@@ -141,9 +144,11 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isCampaignItemsOpen, setIsCampaignItemsOpen] = useState(false);
   const [isCampaignUnlocksOpen, setIsCampaignUnlocksOpen] = useState(false);
+  const [isCampaignActionsOpen, setIsCampaignActionsOpen] = useState(false);
   const campaignUnlocksTrigger = useRef<HTMLButtonElement | null>(null);
   const campaignItemsTrigger = useRef<HTMLButtonElement | null>(null);
   const campaignItems = editingCampaign ? getCampaignItems(editingCampaign) : [];
+  const campaignActions = editingCampaign?.actions || [];
   const collectionPickerTrigger = useRef<HTMLButtonElement | null>(null);
   const collectionViewTrigger = useRef<HTMLButtonElement | null>(null);
   const advancedSettingsTrigger = useRef<HTMLButtonElement | null>(null);
@@ -214,7 +219,15 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
     const campaign = pendingCampaign.current;
     if (!campaign) return true;
     try {
-      StorageService.saveCampaign(autosaveActions.current.packageCampaign(campaign));
+      const packaged = autosaveActions.current.packageCampaign(campaign);
+      const snapshot = JSON.stringify(packaged);
+      if (snapshot === lastSavedCampaign.current) {
+        pendingCampaign.current = null;
+        if (updateStatus) setAutosaveStatus('saved');
+        return true;
+      }
+      StorageService.saveCampaign(packaged);
+      lastSavedCampaign.current = snapshot;
       pendingCampaign.current = null;
       if (updateStatus) setAutosaveStatus('saved');
       autosaveActions.current.onCampaignsUpdated();
@@ -228,6 +241,12 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
 
   useEffect(() => {
     if (!editingCampaign) return;
+    const snapshot = JSON.stringify(packageCampaign(editingCampaign));
+    if (snapshot === lastSavedCampaign.current) {
+      pendingCampaign.current = null;
+      setAutosaveStatus('saved');
+      return;
+    }
     pendingCampaign.current = editingCampaign;
     setAutosaveStatus('saving');
     autosaveTimer.current = setTimeout(() => flushAutosave(), 600);
@@ -262,6 +281,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
     setIsInventoryOpen(false);
     setIsCampaignItemsOpen(false);
     setIsCampaignUnlocksOpen(false);
+    setIsCampaignActionsOpen(false);
     setEditingCampaign(null);
   };
 
@@ -828,6 +848,10 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                   className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-amber-200 hover:border-amber-500">
                   <Award className="h-4 w-4 shrink-0" /> Campaign Unlocks ({editingCampaign.unlocks?.length || 0})
                 </button>
+                <button type="button" onClick={() => setIsCampaignActionsOpen(true)} aria-haspopup="dialog"
+                  className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-amber-200 hover:border-amber-500">
+                  <Sparkles className="h-4 w-4 shrink-0" /> Actions ({campaignActions.length})
+                </button>
               </div>
 
               <div className="md:col-span-4 flex flex-wrap gap-1" role="group" aria-label="Starting collection source">
@@ -1140,6 +1164,8 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                         cards={editorCards}
                         items={campaignItems}
                         unlocks={editingCampaign.unlocks}
+                        actions={campaignActions}
+                        nodes={Object.values(editingCampaign.nodes)}
                         onChange={(effects) => handleUpdateNode({ ...currentNode, effects: effects.length ? effects : undefined })}
                       />
                     </section>}
@@ -1214,22 +1240,9 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                               )}
                             </div>
 
-                            <select
-                              value={currentNode.nextNodeId || ''}
-                              onChange={(e) =>
-                                handleUpdateNode({ ...currentNode, nextNodeId: e.target.value || undefined })
-                              }
-                              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-sky-300 font-bold focus:outline-none focus:border-sky-500"
-                            >
-                              <option value="">-- No Transition (Story Concludes) --</option>
-                              {Object.values(editingCampaign.nodes)
-                                .filter((n) => n.id !== currentNode.id)
-                                .map((n) => (
-                                  <option key={n.id} value={n.id}>
-                                    [{n.type.toUpperCase()}] {n.title} (ID: {n.id.slice(0, 10)})
-                                  </option>
-                                ))}
-                            </select>
+                            <CampaignNodePicker nodes={Object.values(editingCampaign.nodes)} value={currentNode.nextNodeId}
+                              excludeNodeId={currentNode.id} emptyLabel="No Transition (Story Concludes)"
+                              onChange={(nextNodeId) => handleUpdateNode({ ...currentNode, nextNodeId })} />
 
                             {/* Create and link quick buttons */}
                             <div className="pt-1.5 border-t border-slate-800/80 flex flex-wrap items-center gap-1">
@@ -1333,15 +1346,9 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                               <div className="grid grid-cols-1 sm:grid-cols-[1fr_8rem] gap-2">
                                 <label className="min-w-0 text-xs text-slate-400">
                                   Target Node
-                                  <select
-                                    value={route.nextNodeId}
-                                    onChange={(event) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((entry) => entry.id === route.id ? { ...entry, nextNodeId: event.target.value } : entry) })}
-                                    className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200"
-                                  >
-                                    <option value="">Select node</option>
-                                    {route.nextNodeId && !editingCampaign.nodes[route.nextNodeId] && <option value={route.nextNodeId}>Missing node: {route.nextNodeId}</option>}
-                                    {Object.values(editingCampaign.nodes).filter((node) => node.id !== currentNode.id).map((node) => <option key={node.id} value={node.id}>[{node.type.toUpperCase()}] {node.title}</option>)}
-                                  </select>
+                                  <CampaignNodePicker nodes={Object.values(editingCampaign.nodes)} value={route.nextNodeId}
+                                    excludeNodeId={currentNode.id} emptyLabel="Select node"
+                                    onChange={(nextNodeId) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((entry) => entry.id === route.id ? { ...entry, nextNodeId: nextNodeId || '' } : entry) })} />
                                 </label>
                                 <label className="text-xs text-slate-400" title="Relative probability weight. Weights are normalized across valid destinations.">
                                   Probability Weight
@@ -1496,6 +1503,8 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                     cards={editorCards}
                                     items={campaignItems}
                                     unlocks={editingCampaign.unlocks}
+                                    actions={campaignActions}
+                                    nodes={Object.values(editingCampaign.nodes)}
                                     onChange={(effects) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((point) => point.id === choice.id ? { ...point, effects: effects.length ? effects : undefined } : point) })}
                                   />
                                 </section>
@@ -1505,12 +1514,9 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                 <div className="space-y-2">
                                   <label className="block text-xs text-slate-400">
                                     Shop Destination
-                                    <select value={choice.nextNodeId || ''}
-                                      onChange={(event) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((point) => point.id === choice.id ? { ...point, nextNodeId: event.target.value } : point) })}
-                                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-lime-300">
-                                      <option value="">Select shop</option>
-                                      {Object.values(editingCampaign.nodes).filter((node) => node.type === 'shop').map((node) => <option key={node.id} value={node.id}>{node.title}</option>)}
-                                    </select>
+                                    <CampaignNodePicker nodes={Object.values(editingCampaign.nodes)} value={choice.nextNodeId}
+                                      nodeTypes={['shop']} excludeNodeId={currentNode.id} emptyLabel="Select shop"
+                                      onChange={(nextNodeId) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((point) => point.id === choice.id ? { ...point, nextNodeId: nextNodeId || '' } : point) })} />
                                   </label>
                                   <button type="button" onClick={() => createAndLinkNode('shop', (newId) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((point) => point.id === choice.id ? { ...point, nextNodeId: newId } : point) }))}
                                     className="flex items-center gap-1 text-xs text-lime-300"><Store className="h-3.5 w-3.5" /> Create & Link Shop</button>
@@ -1547,24 +1553,13 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                     className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-400"
                                   />
 
-                                  <select
-                                    value={choice.nextNodeId || ''}
-                                    onChange={(e) => {
+                                  <CampaignNodePicker nodes={Object.values(editingCampaign.nodes)} value={choice.nextNodeId}
+                                    excludeNodeId={currentNode.id} emptyLabel="Leads To Node"
+                                    onChange={(nextNodeId) => {
                                       const choices = [...currentNode.choices];
-                                      choices[cIdx].nextNodeId = e.target.value;
+                                      choices[cIdx].nextNodeId = nextNodeId || '';
                                       handleUpdateNode({ ...currentNode, choices });
-                                    }}
-                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-300 font-bold"
-                                  >
-                                    <option value="">-- Leads To Node --</option>
-                                    {Object.values(editingCampaign.nodes)
-                                      .filter((n) => n.id !== currentNode.id)
-                                      .map((n) => (
-                                        <option key={n.id} value={n.id}>
-                                          [{n.type.toUpperCase()}] {n.title} (ID: {n.id.slice(0, 10)})
-                                        </option>
-                                      ))}
-                                  </select>
+                                    }} />
                                 </div>
 
                                 {/* Create and link quick buttons for choice */}
@@ -1647,7 +1642,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
 
                     {/* 3. BATTLE NODE FORM */}
                     {currentNode.type === 'shop' && (
-                      <CampaignShopEditor node={currentNode} nodes={Object.values(editingCampaign.nodes)} cards={editorCards} items={campaignItems} unlocks={editingCampaign.unlocks} onChange={handleUpdateNode} />
+                      <CampaignShopEditor node={currentNode} nodes={Object.values(editingCampaign.nodes)} cards={editorCards} items={campaignItems} unlocks={editingCampaign.unlocks} actions={campaignActions} onChange={handleUpdateNode} />
                     )}
                     {currentNode.type === 'battle' && (
                       <div className="space-y-4">
@@ -1711,22 +1706,9 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                 )}
                               </div>
 
-                              <select
-                                value={currentNode.onVictoryNodeId || ''}
-                                onChange={(e) =>
-                                  handleUpdateNode({ ...currentNode, onVictoryNodeId: e.target.value || undefined })
-                                }
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-bold"
-                              >
-                                <option value="">-- Victory Leads To --</option>
-                                {Object.values(editingCampaign.nodes)
-                                  .filter((n) => n.id !== currentNode.id)
-                                  .map((n) => (
-                                    <option key={n.id} value={n.id}>
-                                      [{n.type.toUpperCase()}] {n.title} (ID: {n.id.slice(0, 10)})
-                                    </option>
-                                  ))}
-                              </select>
+                              <CampaignNodePicker nodes={Object.values(editingCampaign.nodes)} value={currentNode.onVictoryNodeId}
+                                excludeNodeId={currentNode.id} emptyLabel="Victory Leads To"
+                                onChange={(onVictoryNodeId) => handleUpdateNode({ ...currentNode, onVictoryNodeId })} />
 
                               <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-slate-800">
                                 <span className="text-[9px] text-slate-500 font-semibold mr-0.5">Create:</span>
@@ -1772,6 +1754,8 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                   cards={editorCards}
                                   items={campaignItems}
                                   unlocks={editingCampaign.unlocks}
+                                  actions={campaignActions}
+                                  nodes={Object.values(editingCampaign.nodes)}
                                   onChange={(victoryEffects) => handleUpdateNode({ ...currentNode, victoryEffects: victoryEffects.length ? victoryEffects : undefined })}
                                 />
                               </section>
@@ -1793,22 +1777,9 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                 )}
                               </div>
 
-                              <select
-                                value={currentNode.onDefeatNodeId || ''}
-                                onChange={(e) =>
-                                  handleUpdateNode({ ...currentNode, onDefeatNodeId: e.target.value || undefined })
-                                }
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-rose-300 font-bold"
-                              >
-                                <option value="">-- Defeat Leads To --</option>
-                                {Object.values(editingCampaign.nodes)
-                                  .filter((n) => n.id !== currentNode.id)
-                                  .map((n) => (
-                                    <option key={n.id} value={n.id}>
-                                      [{n.type.toUpperCase()}] {n.title} (ID: {n.id.slice(0, 10)})
-                                    </option>
-                                  ))}
-                              </select>
+                              <CampaignNodePicker nodes={Object.values(editingCampaign.nodes)} value={currentNode.onDefeatNodeId}
+                                excludeNodeId={currentNode.id} emptyLabel="Defeat Leads To"
+                                onChange={(onDefeatNodeId) => handleUpdateNode({ ...currentNode, onDefeatNodeId })} />
 
                               <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-slate-800">
                                 <span className="text-[9px] text-slate-500 font-semibold mr-0.5">Create:</span>
@@ -1843,6 +1814,8 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                                   cards={editorCards}
                                   items={campaignItems}
                                   unlocks={editingCampaign.unlocks}
+                                  actions={campaignActions}
+                                  nodes={Object.values(editingCampaign.nodes)}
                                   onChange={(defeatEffects) => handleUpdateNode({ ...currentNode, defeatEffects: defeatEffects.length ? defeatEffects : undefined })}
                                 />
                               </section>
@@ -1924,6 +1897,17 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
               : [...(current.unlocks || []), unlock],
           } : current)}
           onClose={() => { setIsCampaignUnlocksOpen(false); campaignUnlocksTrigger.current?.focus(); }} />
+      )}
+      {editingCampaign && isCampaignActionsOpen && (
+        <CampaignActionsModal actions={campaignActions} nodes={Object.values(editingCampaign.nodes)} cards={editorCards} items={campaignItems}
+          unlocks={editingCampaign.unlocks || []} autosaveStatus={autosaveStatus}
+          onSave={(action) => setEditingCampaign((current) => current ? {
+            ...current,
+            actions: current.actions?.some((entry) => entry.id === action.id)
+              ? current.actions.map((entry) => entry.id === action.id ? action : entry)
+              : [...(current.actions || []), action],
+          } : current)}
+          onClose={() => setIsCampaignActionsOpen(false)} />
       )}
       {editingCampaign && isCampaignItemsOpen && (
         <CampaignItemsModal items={campaignItems} autosaveStatus={autosaveStatus}

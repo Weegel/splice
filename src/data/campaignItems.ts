@@ -21,6 +21,7 @@ export function getCampaignItems(campaign: CampaignDefinition): CampaignItemDefi
     if (node.type === 'hub') node.choices.forEach((choice) => addEffects(choice.effects));
     if (node.type === 'shop') node.offers.forEach((offer) => {
       offer.costs.forEach((cost) => addName(cost.object));
+      if (offer.currencyObject) addName(offer.currencyObject);
       addEffects(offer.effects);
     });
   });
@@ -62,6 +63,7 @@ export function saveCampaignItem(campaign: CampaignDefinition, item: CampaignIte
       if (updated.type === 'shop') updated.offers = updated.offers.map((offer) => ({
         ...offer,
         costs: offer.costs.map((cost) => ({ ...cost, object: rename(cost.object) })),
+        currencyObject: offer.currencyObject ? rename(offer.currencyObject) : undefined,
         effects: renameEffects(offer.effects) || [],
       }));
       return [id, updated];

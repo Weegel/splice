@@ -84,6 +84,7 @@ export function createCampaignRun(
     appliedEffectSourceIds: [],
     unlockedCardIds: [],
     campaignUnlockIds: [],
+    availableCampaignActionIds: (campaign.actions || []).map((action) => action.id),
     earnedCards: [],
     status: 'in_progress',
   };

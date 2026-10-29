@@ -44,7 +44,7 @@ export const RULESET_METADATA: Record<RulesetName, RulesetMeta> = {
   },
   'Noxious Fumes': {
     name: 'Noxious Fumes',
-    description: 'All Monsters start the battle poisoned and take 2 damage at the start of each round.',
+    description: 'All Monsters start the battle poisoned and take 2 direct Health damage at the end of each round.',
     icon: 'Skull',
   },
   'Super Sneak': {

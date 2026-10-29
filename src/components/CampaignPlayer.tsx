@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   CampaignDefinition,
   CampaignNode,
@@ -10,6 +10,7 @@ import {
   CampaignEffect,
   CampaignUnlockDefinition,
   CampaignPrecondition,
+  CampaignShopOffer,
 } from '../types/campaign';
 import { CardDefinition } from '../types/card';
 import { PvEChallenge, TeamSelection, BattleLog } from '../types/battle';
@@ -17,7 +18,7 @@ import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { StorageService } from '../data/storage';
 import { getCampaignItems } from '../data/campaignItems';
 import { cleanCampaignInventoryItems, createCampaignCollection, createCampaignRun, getCampaignCollection, awardCampaignCard, reconcileCampaignRunStartingConfiguration } from '../data/campaignCollection';
-import { applyCampaignBattleOutcomeEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignShopOffer, tradeCampaignShopOffer, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from '../data/campaignEffects';
+import { applyCampaignBattleOutcomeEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignBuyOffer, canTradeCampaignShopOffer, getCampaignBuyOfferPayout, tradeCampaignBuyOffer, tradeCampaignShopOffer, executeCampaignAction, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from '../data/campaignEffects';
 import { BattleEngine } from '../engine/battleEngine';
 import { BattlePreparation } from './BattlePreparation';
 import { BattleViewer } from './BattleViewer';
@@ -41,6 +42,7 @@ import {
   ArrowRight,
   MapPin,
   Package,
+  Search,
   Store,
   X,
   ArrowRightLeft,
@@ -67,6 +69,27 @@ function getShopEffectLabel(effect: CampaignEffect, cards: CardDefinition[], unl
   return '';
 }
 
+function getSellableInventory(offer: CampaignShopOffer, inventory: CampaignRunState['inventory'], items: ReturnType<typeof getCampaignItems>) {
+  const parameter = offer.valueParameter || 'sellvalue';
+  const totals = new Map<string, number>();
+  for (const entry of inventory || []) {
+    const item = items.find((definition) => definition.name.trim().toLowerCase() === entry.object.trim().toLowerCase());
+    const value = item?.parameters?.[parameter];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity <= 0) continue;
+    totals.set(item!.name, (totals.get(item!.name) || 0) + entry.quantity);
+  }
+  return [...totals].map(([name, quantity]) => ({ name, quantity }));
+}
+
+const COLLECTION_SPLINTERS: CardDefinition['splinter'][] = ['Fire', 'Water', 'Earth', 'Life', 'Death', 'Dragon', 'Neutral'];
+const COLLECTION_RARITIES: CardDefinition['rarity'][] = ['Common', 'Rare', 'Epic', 'Legendary'];
+const RARITY_CARD_STYLES: Record<CardDefinition['rarity'], string> = {
+  Common: 'border-slate-600/70 bg-slate-800/50',
+  Rare: 'border-sky-700/60 bg-sky-950/35',
+  Epic: 'border-violet-700/60 bg-violet-950/35',
+  Legendary: 'border-amber-600/60 bg-amber-950/35',
+};
+
 export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
   campaign,
   cards,
@@ -87,6 +110,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
         initialCollection: existing.initialCollection ?? currentStartingCollection,
         initialInventory: JSON.parse(JSON.stringify(initialInventory)),
         inventory: cleanCampaignInventoryItems(existing.inventory ?? initialInventory),
+        availableCampaignActionIds: existing.availableCampaignActionIds ?? (campaign.actions || []).map((action) => action.id),
         initialMana,
         mana: existing.mana ?? initialMana,
         appliedEffectSourceIds: existing.appliedEffectSourceIds ?? existing.visitedNodeIds.map((id) => `node:${id}`),
@@ -100,9 +124,15 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
   const [isInBattlePrep, setIsInBattlePrep] = useState<boolean>(false);
   const [activeBattleLog, setActiveBattleLog] = useState<BattleLog | null>(null);
   const [showCollection, setShowCollection] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [buyOfferSelections, setBuyOfferSelections] = useState<Record<string, { item: string; quantity: number }>>({});
+  const [collectionSearch, setCollectionSearch] = useState('');
+  const [collectionSplinterFilter, setCollectionSplinterFilter] = useState<CardDefinition['splinter'] | 'ALL'>('ALL');
+  const [collectionRarityFilter, setCollectionRarityFilter] = useState<CardDefinition['rarity'] | 'ALL'>('ALL');
   const [showInventory, setShowInventory] = useState(false);
   const [showUnlocks, setShowUnlocks] = useState(false);
   const [showEncounterGraph, setShowEncounterGraph] = useState(false);
+  const closeEncounterGraph = useCallback(() => setShowEncounterGraph(false), []);
 
   // Save run state whenever it updates
   useEffect(() => {
@@ -124,7 +154,27 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
     ),
   ];
   const availableCards = getCampaignCollection(runState);
+  const filteredCollectionCards = availableCards.filter((card) =>
+    (collectionSplinterFilter === 'ALL' || card.splinter === collectionSplinterFilter) &&
+    (collectionRarityFilter === 'ALL' || card.rarity === collectionRarityFilter) &&
+    `${card.name} ${card.splinter} ${card.rarity}`.toLowerCase().includes(collectionSearch.trim().toLowerCase())
+  );
   const campaignItems = getCampaignItems(campaign);
+  const actionIds = runState.availableCampaignActionIds ?? (campaign.actions || []).map((action) => action.id);
+  const availableActions = (campaign.actions || []).filter((action) => actionIds.includes(action.id));
+  const availableShopOffers = currentNode.type === 'shop'
+    ? currentNode.offers.filter((offer) => meetsCampaignPreconditions(runState, offer.preconditions))
+    : [];
+  const availableHubPoints = currentNode.type === 'hub'
+    ? currentNode.choices.filter((building) => {
+      if (!meetsCampaignPreconditions(runState, building.preconditions)) return false;
+      const pointType = building.type || 'node';
+      if (pointType === 'node') return Boolean(campaign.nodes[building.nextNodeId]);
+      if (pointType === 'shop') return campaign.nodes[building.nextNodeId]?.type === 'shop';
+      const sourceId = `poi:${currentNode.id}:${building.id}`;
+      return Boolean(building.effects?.length) && !runState.appliedEffectSourceIds?.includes(sourceId);
+    })
+    : [];
   const getPreconditionMessage = (preconditions: CampaignPrecondition[] | undefined) => {
     const missing = (preconditions || []).filter((precondition) => !meetsCampaignPreconditions(runState, [precondition]));
     return missing.map((precondition) => {
@@ -138,7 +188,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
 
   // Restart campaign run
   const handleRestart = () => {
-    if (confirm('Restart this campaign and reset its collection, inventory, mana, and unlocks? All campaign rewards will be removed.')) {
+    if (confirm('Restart this campaign? All progress, including node progress, battle history, inventory, mana, unlocks, earned cards, and available actions, will be lost. The campaign will return to its starting state.')) {
       const resetState = createCampaignRun(campaign, createCampaignCollection(campaign, cardCatalog, playerCollection));
       setRunState(resolveCampaignMultiNodes(applyCampaignNodeEffects(resetState, campaign.nodes[campaign.startNodeId], cardCatalog), campaign, cardCatalog));
       setIsInBattlePrep(false);
@@ -269,7 +319,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
   return (
     <div className="space-y-6">
       {showEncounterGraph && (
-        <CampaignEncounterGraph campaign={campaign} currentNodeId={runState.currentNodeId} onClose={() => setShowEncounterGraph(false)} />
+        <CampaignEncounterGraph campaign={campaign} currentNodeId={runState.currentNodeId} onClose={closeEncounterGraph} />
       )}
       {/* Top Campaign Status Header */}
       <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -306,6 +356,12 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
             <Package className="w-4 h-4" />
             Inventory ({runState.inventory?.length || 0})
           </button>
+          {!!campaign.actions?.length && (
+            <button type="button" onClick={() => setShowActions(true)} aria-haspopup="dialog"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200">
+              <Sparkles className="h-4 w-4" /> Actions ({availableActions.length})
+            </button>
+          )}
           {!!campaign.unlocks?.length && (
             <button type="button" onClick={() => setShowUnlocks(!showUnlocks)} aria-expanded={showUnlocks} aria-controls="campaign-player-unlocks"
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200">
@@ -329,10 +385,10 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
           <button
             onClick={handleRestart}
             className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition"
-            title="Restart campaign from beginning"
+            title="Restart campaign and lose all progress"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            Restart Quest
+            Restart Campaign
           </button>
         </div>
       </div>
@@ -356,6 +412,41 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
             })}
           </ul>
         </section>
+      )}
+      {showActions && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4" onClick={() => setShowActions(false)} onKeyDown={(event) => {
+          if (event.key === 'Escape') { event.stopPropagation(); setShowActions(false); }
+        }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="campaign-player-actions-title" onClick={(event) => event.stopPropagation()}
+            className="flex max-h-[85dvh] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-900 p-4 text-slate-100">
+            <header className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 id="campaign-player-actions-title" className="text-sm font-bold text-amber-300">Campaign Actions</h3>
+                <p className="text-xs text-slate-500">Actions require their listed conditions.</p>
+              </div>
+              <button type="button" autoFocus title="Close campaign actions" aria-label="Close campaign actions" onClick={() => setShowActions(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-slate-800"><X className="h-4 w-4" /></button>
+            </header>
+            <div className="min-h-0 space-y-2 overflow-y-auto">
+              {!availableActions.length && <p className="py-4 text-center text-xs text-slate-500">No actions are currently available.</p>}
+              {availableActions.map((action) => {
+                const eligible = meetsCampaignPreconditions(runState, action.preconditions);
+                return (
+                  <button key={action.id} type="button" disabled={!eligible}
+                    onClick={() => {
+                      setRunState((current) => executeCampaignAction(current, action, campaign, campaignCards));
+                      setShowActions(false);
+                    }}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-left hover:border-amber-500 disabled:cursor-not-allowed disabled:opacity-60">
+                    <span className="block text-sm font-semibold text-slate-100">{action.name}</span>
+                    {action.description && <span className="mt-1 block text-xs text-slate-400">{action.description}</span>}
+                    {!eligible && <span className="mt-2 block text-xs text-amber-300">{getPreconditionMessage(action.preconditions)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
       )}
       {showInventory && (
         <section className="border-y border-slate-800 py-4">
@@ -396,7 +487,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
           >
             <div className="flex items-center justify-between gap-3">
               <h3 id="campaign-player-collection-title" className="text-sm font-bold text-amber-300">
-                Campaign Collection ({availableCards.length})
+                Campaign Collection ({filteredCollectionCards.length}/{availableCards.length})
               </h3>
               <button
                 type="button"
@@ -409,12 +500,30 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
+            <div className="grid shrink-0 gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_9rem]">
+              <label className="relative min-w-0">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input type="search" value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search cards"
+                  aria-label="Search campaign cards" className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none" />
+              </label>
+              <select aria-label="Filter campaign cards by splinter" value={collectionSplinterFilter} onChange={(event) => setCollectionSplinterFilter(event.target.value as CardDefinition['splinter'] | 'ALL')}
+                className="min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                <option value="ALL">All Splinters</option>
+                {COLLECTION_SPLINTERS.map((splinter) => <option key={splinter} value={splinter}>{splinter}</option>)}
+              </select>
+              <select aria-label="Filter campaign cards by rarity" value={collectionRarityFilter} onChange={(event) => setCollectionRarityFilter(event.target.value as CardDefinition['rarity'] | 'ALL')}
+                className="min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                <option value="ALL">All Rarities</option>
+                {COLLECTION_RARITIES.map((rarity) => <option key={rarity} value={rarity}>{rarity}</option>)}
+              </select>
+            </div>
             <div className="min-h-0 overflow-y-auto space-y-4">
+              {!filteredCollectionCards.length && <p className="py-5 text-center text-xs text-slate-500">No cards match these filters.</p>}
               {([
                 { cardType: 'Summoner', label: 'Archons' },
-                { cardType: 'Monster', label: 'Units' },
+                { cardType: 'Monster', label: 'Summons' },
               ] as const).map((group) => {
-                const groupCards = availableCards.filter((card) => card.cardType === group.cardType);
+                const groupCards = filteredCollectionCards.filter((card) => card.cardType === group.cardType);
                 return (
                   <section key={group.label} aria-label={group.label} className="border-t border-slate-700 pt-3">
                     <h4 className={`text-xs font-bold mb-2 ${group.cardType === 'Summoner' ? 'text-amber-300' : 'text-sky-300'}`}>
@@ -423,12 +532,11 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                     {groupCards.length ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {groupCards.map((card) => (
-                          <div key={card.id} className="flex items-center gap-3 border border-slate-800 rounded-lg p-2 min-w-0">
+                          <div key={card.id} className={`flex min-w-0 items-center gap-3 rounded-lg border p-2 ${RARITY_CARD_STYLES[card.rarity]}`}>
                             {card.imageUrl && <img src={card.imageUrl} alt="" className="w-10 h-14 object-contain shrink-0" />}
                             <div className="min-w-0">
                               <p className="text-sm text-slate-200 break-words">{card.name}</p>
                               <p className="text-xs text-slate-400">{card.splinter} · Level {Math.max(...card.stats.map((stat) => stat.level))}</p>
-                              {runState.unlockedCardIds.includes(card.id) && <span className="text-xs text-emerald-400">Acquired</span>}
                             </div>
                           </div>
                         ))}
@@ -620,7 +728,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
               <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-line">{currentNode.prompt}</p>
               {currentNode.description && <p className="text-sm text-slate-400">{currentNode.description}</p>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {currentNode.choices.map((building) => {
+                {availableHubPoints.map((building) => {
                   const pointType = building.type || 'node';
                   const PointIcon = pointType === 'event' ? Zap : pointType === 'shop' ? Store : MapPin;
                   const destination = pointType === 'node' || pointType === 'shop' ? campaign.nodes[building.nextNodeId] : undefined;
@@ -628,19 +736,15 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                   const visited = (pointType === 'node' || pointType === 'shop') && runState.visitedNodeIds.includes(building.nextNodeId);
                   const effectSourceId = `poi:${currentNode.id}:${building.id}`;
                   const completed = runState.appliedEffectSourceIds?.includes(effectSourceId);
-                  const meetsPreconditions = meetsCampaignPreconditions(runState, building.preconditions);
-                  const available = meetsPreconditions && (pointType === 'node' ? Boolean(destination) : pointType === 'shop' ? destination?.type === 'shop' : Boolean(building.effects?.length) && !completed);
                   return (
                     <button
                       key={building.id}
                       type="button"
                       onClick={() => {
-                        if (!available || !meetsCampaignPreconditions(runState, building.preconditions)) return;
                         if (pointType === 'node' || pointType === 'shop') navigateToNode(building.nextNodeId);
                         else if (pointType === 'event') setRunState((current) => meetsCampaignPreconditions(current, building.preconditions) ? applyCampaignEffectSource(current, effectSourceId, building.effects, campaignCards) : current);
                       }}
-                      disabled={!available}
-                      className="min-w-0 text-left rounded-lg border border-slate-700 bg-slate-950/80 overflow-hidden hover:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition group"
+                      className="min-w-0 text-left rounded-lg border border-slate-700 bg-slate-950/80 overflow-hidden hover:border-teal-500 transition group"
                     >
                       {building.imageUrl ? (
                         <img src={building.imageUrl} alt="" className="w-full aspect-[16/9] object-cover" />
@@ -656,13 +760,13 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                           <ChevronRight className="w-4 h-4 text-teal-400 shrink-0" />
                         </div>
                         {description && <p className="text-xs text-slate-400 break-words">{description}</p>}
-                        {!meetsPreconditions && <p className="break-words text-xs text-amber-300">{getPreconditionMessage(building.preconditions)}</p>}
-                        <span className="text-xs text-teal-400">{pointType === 'event' ? completed ? 'Completed' : available ? 'Activate' : 'Unavailable' : !available ? 'Unavailable' : visited ? 'Visited' : pointType === 'shop' ? 'Browse' : 'Visit'}</span>
+                        <span className="text-xs text-teal-400">{pointType === 'event' ? completed ? 'Completed' : 'Activate' : visited ? 'Visited' : pointType === 'shop' ? 'Browse' : 'Visit'}</span>
                       </div>
                     </button>
                   );
                 })}
               </div>
+              {!availableHubPoints.length && <p className="text-xs text-slate-500">No available points of interest.</p>}
             </div>
           )}
 
@@ -680,34 +784,70 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
                 <h3 className="min-w-0 break-words text-xl font-bold font-fantasy text-slate-100">{currentNode.title}</h3>
               </div>
               {currentNode.description && <p className="whitespace-pre-line text-sm text-slate-300">{currentNode.description}</p>}
-              <div className="border-y border-slate-800 py-3">
-                {campaign.campaignMana && <p className="mb-2 text-xs text-blue-300">Starting mana: {runState.startingMana ?? runState.initialMana ?? 0}</p>}
-                <h4 className="mb-2 text-xs font-bold text-slate-400">Inventory</h4>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300">
-                  {(runState.inventory || []).map((item) => <span key={item.id} className="break-words">{item.quantity} x {item.object}</span>)}
-                  {!runState.inventory?.length && <span className="text-slate-500">Empty</span>}
-                </div>
-              </div>
               <div className="max-h-[min(50dvh,32rem)] divide-y divide-slate-800 overflow-y-auto overscroll-contain pr-2 [scrollbar-gutter:stable]">
                 {!currentNode.offers.length && <p className="py-4 text-sm text-slate-500">No offers</p>}
-                {currentNode.offers.map((offer) => {
+                {currentNode.offers.length > 0 && !availableShopOffers.length && <p className="py-4 text-sm text-slate-500">No available offers</p>}
+                {availableShopOffers.map((offer) => {
+                  if (offer.offerType === 'buy') {
+                    const sellableItems = getSellableInventory(offer, runState.inventory, campaignItems);
+                    const savedSelection = buyOfferSelections[offer.id];
+                    const selectedItem = sellableItems.find((item) => item.name === savedSelection?.item) || sellableItems[0];
+                    const quantity = selectedItem ? Math.min(Math.max(1, savedSelection?.quantity || 1), selectedItem.quantity) : 1;
+                    const payout = selectedItem ? getCampaignBuyOfferPayout(offer, selectedItem.name, quantity, campaignItems) : null;
+                    const canSell = Boolean(selectedItem && payout !== null && meetsCampaignPreconditions(runState, offer.preconditions) && canTradeCampaignBuyOffer(runState, offer, selectedItem.name, quantity, campaignItems));
+                    return (
+                      <article key={offer.id} className="space-y-3 border-b border-slate-800 py-4">
+                        <div className="min-w-0 space-y-1">
+                          <h4 className="break-words text-sm font-bold text-lime-300">{offer.title || 'Buy Items'}</h4>
+                          {offer.valueParameter && <p className="text-xs text-slate-400">Pays by {offer.valueParameter}</p>}
+                          {Boolean(offer.effects?.length) && <ul className="space-y-1 text-xs text-amber-300">{offer.effects.map((effect) => <li key={effect.id}>{getShopEffectLabel(effect, campaignCards, campaign.unlocks)}</li>)}</ul>}
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto] sm:items-end">
+                          <label className="block min-w-0 text-xs text-slate-400">Sell item
+                            <select value={selectedItem?.name || ''} aria-label={`Sell item for ${offer.title || 'buy offer'}`}
+                              onChange={(event) => setBuyOfferSelections((current) => ({ ...current, [offer.id]: { item: event.target.value, quantity: 1 } }))}
+                              className="mt-1 w-full min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-slate-100">
+                              <option value="">Select item</option>
+                              {sellableItems.map((item) => <option key={item.name} value={item.name}>{item.name} ({item.quantity})</option>)}
+                            </select>
+                          </label>
+                          <label className="block text-xs text-slate-400">Quantity
+                            <input type="number" min="1" max={selectedItem?.quantity || 1} step="1" value={quantity} aria-label={`Sell quantity for ${offer.title || 'buy offer'}`}
+                              disabled={!selectedItem}
+                              onChange={(event) => setBuyOfferSelections((current) => ({ ...current, [offer.id]: { item: selectedItem?.name || '', quantity: Math.max(1, Math.min(selectedItem?.quantity || 1, Math.floor(Number(event.target.value) || 1))) } }))}
+                              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-slate-100 disabled:opacity-50" />
+                          </label>
+                          <button type="button" disabled={!canSell} aria-label={`Sell ${selectedItem?.name || 'item'} to ${offer.title || 'offer'}`}
+                            title={!meetsCampaignPreconditions(runState, offer.preconditions) ? getPreconditionMessage(offer.preconditions) : canSell ? 'Sell selected items' : 'No eligible item or payout currency'}
+                            onClick={() => selectedItem && setRunState((current) => current.currentNodeId === currentNode.id ? tradeCampaignBuyOffer(current, offer, selectedItem.name, quantity, campaignItems, campaignCards) : current)}
+                            className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-lime-700 bg-lime-950 px-3 py-2 text-xs font-bold text-lime-200 hover:bg-lime-900 disabled:cursor-not-allowed disabled:opacity-40">
+                            <ArrowRightLeft className="h-4 w-4" /> Sell
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-400">Receive {payout ?? 0} x {offer.currencyObject || 'No currency selected'}</p>
+                        {!sellableItems.length && <p className="text-xs text-slate-500">No inventory items have this value property.</p>}
+                      </article>
+                    );
+                  }
                   const affordable = canTradeCampaignShopOffer(runState, offer, campaignCards);
-                  const meetsPreconditions = meetsCampaignPreconditions(runState, offer.preconditions);
                   return (
                     <article key={offer.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                       <div className="min-w-0 flex-1 space-y-2">
                         <h4 className="break-words text-sm font-bold text-lime-300">{offer.title || 'Offer'}</h4>
-                        {!meetsPreconditions && <p className="break-words text-xs text-amber-300">{getPreconditionMessage(offer.preconditions)}</p>}
                         {Boolean(offer.effects?.length) && <ul className="space-y-1 text-xs text-amber-300">
                           {offer.effects?.map((effect) => <li key={effect.id}>{getShopEffectLabel(effect, campaignCards, campaign.unlocks)}</li>)}
                         </ul>}
                         <div className="text-xs text-slate-400">For</div>
                         <ul className="space-y-1 text-xs text-slate-300">
-                          {offer.costs.map((cost, index) => <li key={index} className="break-words">{cost.quantity} x {cost.object || 'Unnamed item'}</li>)}
+                          {offer.costs.map((cost, index) => {
+                            const available = (runState.inventory || []).reduce((total, item) =>
+                              total + (item.object.trim().toLowerCase() === cost.object.trim().toLowerCase() ? item.quantity : 0), 0);
+                            return <li key={index} className="break-words">{cost.quantity} x {cost.object || 'Unnamed item'} ({available} available)</li>;
+                          })}
                         </ul>
                       </div>
                       <button type="button" disabled={!affordable} aria-label={`Buy ${offer.title || 'offer'}`}
-                        title={!meetsPreconditions ? getPreconditionMessage(offer.preconditions) : affordable ? 'Exchange required items for this offer' : 'Required items are missing or this offer is incomplete'}
+                        title={affordable ? 'Exchange required items for this offer' : 'Required items are missing or this offer is incomplete'}
                         onClick={() => setRunState((current) => current.currentNodeId === currentNode.id ? tradeCampaignShopOffer(current, offer, campaignCards) : current)}
                         className="flex shrink-0 items-center gap-2 rounded-lg border border-lime-700 bg-lime-950 px-3 py-2 text-xs font-bold text-lime-200 hover:bg-lime-900 disabled:cursor-not-allowed disabled:opacity-40">
                         <ArrowRightLeft className="h-4 w-4" /> Buy

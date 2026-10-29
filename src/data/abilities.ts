@@ -103,7 +103,7 @@ export const ABILITY_METAS: Record<Ability, AbilityMeta> = {
   },
   Poison: {
     name: 'Poison',
-    description: 'Attacks have a 50% chance to apply poison, which does 2 damage at the start of each round.',
+    description: 'Attacks have a 50% chance to poison the target, dealing 2 direct Health damage at the end of each round.',
     type: 'debuff',
   },
   Stun: {

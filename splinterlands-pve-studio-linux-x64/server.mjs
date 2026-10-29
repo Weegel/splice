@@ -9,6 +9,7 @@ const distRoot = path.join(root, 'dist');
 const localRoot = path.join(root, 'local');
 const preferredPort = Number(process.env.PORT || 5173);
 const cardCatalogPath = path.join(localRoot, 'all_cards.json');
+const profilesPath = path.join(localRoot, 'profiles.json');
 const cardApiEndpoints = ['https://api2.splinterlands.com/cards/get_details', 'https://api.splinterlands.io/cards/get_details', 'https://api.splinterlands.com/cards/get_details'];
 const resolvedDistRoot = path.resolve(distRoot);
 
@@ -29,6 +30,62 @@ async function readFolder(folderName) {
     }
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   return values;
+}
+
+function normalizeFilePart(value) {
+  return String(value || 'unnamed')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'unnamed';
+}
+
+function battleFileBase(value) {
+  const name = value.name || `${value.summoner1?.name || 'team_1'} vs ${value.summoner2?.name || 'team_2'}`;
+  return `battle_${normalizeFilePart(name)}`;
+}
+
+async function findFileById(folder, id) {
+  try {
+    for (const file of await fs.readdir(folder)) {
+      if (!file.endsWith('.json')) continue;
+      try {
+        const value = JSON.parse((await fs.readFile(path.join(folder, file), 'utf8')).replace(/^\uFEFF/, ''));
+        if (value?.id === id) return path.join(folder, file);
+      } catch {
+        // Invalid files are ignored here and reported by the workspace loader.
+      }
+    }
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  return null;
+}
+
+async function uniqueFilePath(folder, base, currentPath = null) {
+  for (let suffix = 0; ; suffix++) {
+    const filePath = path.join(folder, `${base}${suffix ? `(${suffix})` : ''}.json`);
+    if (filePath === currentPath) return filePath;
+    try { await fs.access(filePath); } catch (error) { if (error.code === 'ENOENT') return filePath; throw error; }
+  }
+}
+
+async function migrateBattleFileNames() {
+  const folder = path.join(localRoot, 'battles');
+  try {
+    for (const file of await fs.readdir(folder)) {
+      if (!file.endsWith('.json')) continue;
+      const currentPath = path.join(folder, file);
+      try {
+        const value = JSON.parse((await fs.readFile(currentPath, 'utf8')).replace(/^\uFEFF/, ''));
+        if (!value?.id) continue;
+        const base = battleFileBase(value);
+        if (new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\(\\d+\\))?\\.json$`).test(file)) continue;
+        const nextPath = await uniqueFilePath(folder, base, currentPath);
+        await fs.rename(currentPath, nextPath);
+      } catch (error) {
+        console.warn(`Could not migrate battle filename ${file}`, error.message);
+      }
+    }
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 
 function isTrustedRequest(req) {
@@ -96,8 +153,24 @@ const server = http.createServer(async (req, res) => {
       if (req.method !== 'GET') { res.writeHead(405, { Allow: 'GET' }); res.end('Method Not Allowed'); return; }
       const cards = await readFolder('cards');
       const campaigns = await readFolder('campaigns');
+      await migrateBattleFileNames();
       const battles = await readFolder('battles');
-      sendJson(res, 200, { cards, campaigns, challenges: battles.filter((item) => item?.enemyTeam), battleLogs: battles.filter((item) => item?.events) });
+      let profileState = { profiles: null, activeProfileId: null };
+      try {
+        const parsed = JSON.parse((await fs.readFile(profilesPath, 'utf8')).replace(/^\uFEFF/, ''));
+        if (Array.isArray(parsed.profiles)) profileState = { profiles: parsed.profiles, activeProfileId: parsed.activeProfileId || null };
+      } catch (error) {
+        if (error.code !== 'ENOENT') console.warn('Could not load local/profiles.json', error.message);
+      }
+      sendJson(res, 200, { cards, campaigns, challenges: battles.filter((item) => item?.enemyTeam), battleLogs: battles.filter((item) => item?.events), ...profileState });
+      return;
+    }
+    if (req.url === '/__local_profiles_save' && req.method === 'POST') {
+      const payload = await readJsonBody(req);
+      if (!Array.isArray(payload.profiles)) throw new Error('Invalid profiles payload');
+      await fs.mkdir(localRoot, { recursive: true });
+      await fs.writeFile(profilesPath, JSON.stringify({ profiles: payload.profiles, activeProfileId: payload.activeProfileId || null }, null, 2), 'utf8');
+      sendJson(res, 200, { ok: true });
       return;
     }
     if (req.url === '/__local_workspace_save' && req.method === 'POST') {
@@ -105,17 +178,20 @@ const server = http.createServer(async (req, res) => {
       if (!['cards', 'battles', 'campaigns'].includes(payload.kind) || !payload.value?.id) throw new Error('Invalid save payload');
       const folder = path.join(localRoot, payload.kind);
       await fs.mkdir(folder, { recursive: true });
-      const safeId = String(payload.value.id).replace(/[^a-zA-Z0-9_-]/g, '_');
-      await fs.writeFile(path.join(folder, `${payload.kind.slice(0, -1)}_${safeId}.json`), JSON.stringify(payload.value, null, 2));
+      const existingPath = await findFileById(folder, payload.value.id);
+      const safeId = normalizeFilePart(payload.value.id);
+      const base = payload.kind === 'battles' ? battleFileBase(payload.value) : `${payload.kind.slice(0, -1)}_${safeId}`;
+      const filePath = existingPath || await uniqueFilePath(folder, base);
+      await fs.writeFile(filePath, JSON.stringify(payload.value, null, 2));
       sendJson(res, 200, { ok: true });
       return;
     }
     if (req.url === '/__local_workspace_delete' && req.method === 'POST') {
       const payload = await readJsonBody(req);
       if (!['cards', 'battles', 'campaigns'].includes(payload.kind) || !payload.id) throw new Error('Invalid delete payload');
-      const safeId = String(payload.id).replace(/[^a-zA-Z0-9_-]/g, '_');
-      const filePath = path.join(localRoot, payload.kind, `${payload.kind.slice(0, -1)}_${safeId}.json`);
-      try { await fs.unlink(filePath); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      const folder = path.join(localRoot, payload.kind);
+      const filePath = await findFileById(folder, payload.id);
+      if (filePath) await fs.unlink(filePath);
       sendJson(res, 200, { ok: true });
       return;
     }

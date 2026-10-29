@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Background, Controls, Handle, MiniMap, Position, ReactFlow, MarkerType, type Edge, type Node } from '@xyflow/react';
+import { memo, useEffect, useRef } from 'react';
+import { Background, BaseEdge, Controls, EdgeLabelRenderer, getBezierPath, Handle, MiniMap, Position, ReactFlow, MarkerType, useViewport, type Edge, type EdgeProps, type Node } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import { X } from 'lucide-react';
 import { CampaignDefinition, CampaignNodeType } from '../types/campaign';
@@ -10,6 +10,29 @@ const colors: Record<CampaignNodeType, string> = {
   hub: '#2dd4bf', shop: '#a3e635', battle: '#fb7185', end: '#34d399',
 };
 
+const MIN_LABEL_ZOOM = 0.75;
+
+function CampaignGraphEdge(props: EdgeProps) {
+  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, label } = props;
+  const { zoom } = useViewport();
+  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  return (
+    <>
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
+      {label && zoom >= MIN_LABEL_ZOOM && (
+        <EdgeLabelRenderer>
+          <div className="nodrag nopan rounded border border-slate-600 bg-slate-950 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-slate-100 shadow"
+            style={{ position: 'absolute', transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`, pointerEvents: 'none' }}>
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+
+const edgeTypes = { campaign: CampaignGraphEdge };
+
 interface CampaignEncounterGraphProps {
   campaign: CampaignDefinition;
   currentNodeId?: string;
@@ -17,7 +40,7 @@ interface CampaignEncounterGraphProps {
   onSelectNode?: (nodeId: string) => void;
 }
 
-export function CampaignEncounterGraph({ campaign, currentNodeId, onClose, onSelectNode }: CampaignEncounterGraphProps) {
+export const CampaignEncounterGraph = memo(function CampaignEncounterGraph({ campaign, currentNodeId, onClose, onSelectNode }: CampaignEncounterGraphProps) {
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -36,11 +59,9 @@ export function CampaignEncounterGraph({ campaign, currentNodeId, onClose, onSel
     if (!target) return;
     edges.push({
       id: `encounter-edge-${edges.length}`, source, target, label,
-      type: 'default',
+      type: 'campaign',
       markerEnd: { type: MarkerType.ArrowClosed, color },
       style: { stroke: color, strokeWidth: 1.5, opacity: 0.62 },
-      labelStyle: { fill: '#e2e8f0', fontSize: 10 },
-      labelBgStyle: { fill: '#0f172a', fillOpacity: 0.9 },
     });
   };
   for (const node of Object.values(campaign.nodes)) {
@@ -153,12 +174,13 @@ export function CampaignEncounterGraph({ campaign, currentNodeId, onClose, onSel
           <div className="min-w-0 flex-1">
             <h3 id="encounter-graph-title" className="text-lg font-bold">Encounter Graph</h3>
             <p className="truncate text-xs text-slate-400" title={campaign.name}>{campaign.name} / {Object.keys(campaign.nodes).length} encounters / {edges.length} paths</p>
+            <p className="text-[10px] text-slate-500">Path labels appear when zoomed in.</p>
           </div>
           <button ref={closeButton} type="button" onClick={onClose} title="Close encounter graph" aria-label="Close encounter graph" className="rounded p-2 text-slate-300 hover:bg-slate-800"><X className="h-5 w-5" /></button>
         </header>
         <div className="min-h-0 flex-1">
           {nodes.length ? (
-            <ReactFlow nodes={nodes} edges={routedEdges} fitView fitViewOptions={{ padding: 0.2 }} minZoom={0.05} maxZoom={2} nodesDraggable={false} nodesConnectable={false} colorMode="dark"
+            <ReactFlow nodes={nodes} edges={routedEdges} edgeTypes={edgeTypes} fitView fitViewOptions={{ padding: 0.2 }} minZoom={0.05} maxZoom={2} nodesDraggable={false} nodesConnectable={false} colorMode="dark"
               onNodeClick={(_, node) => { if (onSelectNode && campaign.nodes[node.id]) onSelectNode(node.id); }}>
               <Background color="#334155" gap={24} />
               <Controls showInteractive={false} />
@@ -169,4 +191,4 @@ export function CampaignEncounterGraph({ campaign, currentNodeId, onClose, onSel
       </div>
     </div>
   );
-}
+});

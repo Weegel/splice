@@ -1,18 +1,21 @@
 import React from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import { CampaignEffect, CampaignItemDefinition, CampaignUnlockDefinition } from '../types/campaign';
+import { CampaignActionDefinition, CampaignEffect, CampaignItemDefinition, CampaignNode, CampaignUnlockDefinition } from '../types/campaign';
 import { CardDefinition } from '../types/card';
 import { CampaignItemSelect } from './CampaignItemSelect';
+import { CampaignNodePicker } from './CampaignNodePicker';
 
 interface CampaignEffectsEditorProps {
   effects: CampaignEffect[];
   cards: CardDefinition[];
   items: CampaignItemDefinition[];
   unlocks?: CampaignUnlockDefinition[];
+  actions?: CampaignActionDefinition[];
+  nodes?: CampaignNode[];
   onChange: (effects: CampaignEffect[]) => void;
 }
 
-type EditableEffectType = 'give_object' | 'remove_object' | 'give_mana' | 'remove_mana' | 'set_mana' | 'set_starting_mana' | 'increase_starting_mana' | 'set_mana_to_starting_mana' | 'give_card' | 'remove_card' | 'campaignunlock';
+type EditableEffectType = 'give_object' | 'remove_object' | 'give_mana' | 'remove_mana' | 'set_mana' | 'set_starting_mana' | 'increase_starting_mana' | 'set_mana_to_starting_mana' | 'give_card' | 'remove_card' | 'campaignunlock' | 'add_campaign_action' | 'remove_campaign_action' | 'go_to_node';
 
 const EFFECT_TYPES: { type: EditableEffectType; label: string }[] = [
   { type: 'give_object', label: 'Give object' },
@@ -26,6 +29,9 @@ const EFFECT_TYPES: { type: EditableEffectType; label: string }[] = [
   { type: 'give_card', label: 'Give card' },
   { type: 'remove_card', label: 'Remove card' },
   { type: 'campaignunlock', label: 'Campaign unlock' },
+  { type: 'add_campaign_action', label: 'Add campaign action' },
+  { type: 'remove_campaign_action', label: 'Remove campaign action' },
+  { type: 'go_to_node', label: 'Go to node' },
 ];
 
 function getEditableType(effect: CampaignEffect): EditableEffectType {
@@ -42,6 +48,8 @@ function getObjectName(effect: CampaignEffect): string {
 }
 
 function createEffect(type: EditableEffectType, id: string): CampaignEffect {
+  if (type === 'add_campaign_action' || type === 'remove_campaign_action') return { id, type, actionId: '' };
+  if (type === 'go_to_node') return { id, type, nodeId: '' };
   if (type === 'campaignunlock') return { id, type, unlockIds: [] };
   if (type === 'set_mana_to_starting_mana') return { id, type };
   if (type === 'give_card' || type === 'remove_card') return { id, type, cardId: '' };
@@ -50,7 +58,7 @@ function createEffect(type: EditableEffectType, id: string): CampaignEffect {
   return { id, type, object: '', quantity: 1 };
 }
 
-export const CampaignEffectsEditor: React.FC<CampaignEffectsEditorProps> = ({ effects, cards, items, unlocks = [], onChange }) => {
+export const CampaignEffectsEditor: React.FC<CampaignEffectsEditorProps> = ({ effects, cards, items, unlocks = [], actions = [], nodes = [], onChange }) => {
   const updateEffect = (updated: CampaignEffect) => onChange(effects.map((effect) => effect.id === updated.id ? updated : effect));
   const moveEffect = (index: number, offset: number) => {
     const target = index + offset;
@@ -77,7 +85,23 @@ export const CampaignEffectsEditor: React.FC<CampaignEffectsEditorProps> = ({ ef
             <button type="button" title="Move effect down" aria-label={`Move effect ${index + 1} down`} disabled={index === effects.length - 1} onClick={() => moveEffect(index, 1)} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg border border-slate-700 text-slate-400 disabled:opacity-30"><ArrowDown className="w-4 h-4" /></button>
             <button type="button" title="Remove effect" aria-label={`Remove effect ${index + 1}`} onClick={() => onChange(effects.filter((entry) => entry.id !== effect.id))} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg border border-slate-700 text-rose-400"><Trash2 className="w-4 h-4" /></button>
           </div>
-          {effect.type === 'campaignunlock' ? (
+          {effect.type === 'go_to_node' ? (
+            <label className="block text-xs text-slate-400">
+              Destination
+              <CampaignNodePicker nodes={nodes} value={effect.nodeId} emptyLabel="Select destination"
+                onChange={(nodeId) => updateEffect({ ...effect, nodeId: nodeId || '' })} />
+            </label>
+          ) : effect.type === 'add_campaign_action' || effect.type === 'remove_campaign_action' ? (
+            <label className="block text-xs text-slate-400">
+              Campaign Action
+              <select value={effect.actionId} onChange={(event) => updateEffect({ ...effect, actionId: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200">
+                <option value="">Select action</option>
+                {effect.actionId && !actions.some((action) => action.id === effect.actionId) && <option value={effect.actionId} disabled>{effect.actionId} (Unavailable)</option>}
+                {actions.map((action) => <option key={action.id} value={action.id}>{action.name}</option>)}
+              </select>
+            </label>
+          ) : effect.type === 'campaignunlock' ? (
             <div className="min-w-0 space-y-2">
               {(effect.unlockIds.length ? effect.unlockIds : ['']).map((unlockId, unlockIndex) => (
                 <div key={unlockIndex} className="flex items-end gap-2">
@@ -164,7 +188,7 @@ export const CampaignEffectsEditor: React.FC<CampaignEffectsEditorProps> = ({ ef
                 className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200"
               />
             </label>
-          ) : (
+          ) : 'object' in effect || 'resource' in effect ? (
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_6rem] gap-2">
               <label className="block text-xs text-slate-400">
                 Object
@@ -187,7 +211,7 @@ export const CampaignEffectsEditor: React.FC<CampaignEffectsEditorProps> = ({ ef
                 />
               </label>
             </div>
-          )}
+          ) : null}
         </div>
       ))}
       {!effects.length && <p className="text-xs text-slate-500">No effects.</p>}

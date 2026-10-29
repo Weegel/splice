@@ -11,6 +11,8 @@ export type CampaignEffect =
   | { id: string; type: 'increase_starting_mana'; quantity: number }
   | { id: string; type: 'set_mana_to_starting_mana' }
   | { id: string; type: 'campaignunlock'; unlockIds: string[] }
+  | { id: string; type: 'add_campaign_action' | 'remove_campaign_action'; actionId: string }
+  | { id: string; type: 'go_to_node'; nodeId: string }
   | { id: string; type: 'set_minimum_mana'; minimumMana: number }
   | { id: string; type: 'give_resource' | 'remove_resource'; resource: string; quantity: number }
   | { id: string; type: 'give_item' | 'remove_item'; object: string; quantity: number }
@@ -106,6 +108,9 @@ export interface CampaignShopItem {
 export interface CampaignShopOffer {
   id: string;
   title?: string;
+  offerType?: 'barter' | 'buy' | 'effect';
+  valueParameter?: CampaignItemParameter;
+  currencyObject?: string;
   costs: CampaignShopItem[];
   effects: CampaignEffect[];
   preconditions?: CampaignPrecondition[];
@@ -159,6 +164,14 @@ export interface CampaignUnlockDefinition {
   description: string;
 }
 
+export interface CampaignActionDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  preconditions: CampaignPrecondition[];
+  effects: CampaignEffect[];
+}
+
 export interface CampaignDefinition {
   id: string;
   name: string;
@@ -175,6 +188,7 @@ export interface CampaignDefinition {
   inventory?: CampaignInventoryItem[];
   items?: CampaignItemDefinition[];
   unlocks?: CampaignUnlockDefinition[];
+  actions?: CampaignActionDefinition[];
   campaignMana?: boolean;
   startingMana?: number;
   allowedEditions?: number[];
@@ -196,6 +210,7 @@ export interface CampaignRunState {
   }[];
   unlockedCardIds: string[];
   campaignUnlockIds?: string[];
+  availableCampaignActionIds?: string[];
   initialCollection?: CardDefinition[];
   initialInventory?: CampaignInventoryItem[];
   inventory?: CampaignInventoryItem[];

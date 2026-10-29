@@ -1,4 +1,4 @@
-import { BattleCampaignNode, CampaignDefinition, CampaignEffect, CampaignNode, CampaignPrecondition, CampaignRunState, CampaignShopOffer, CampaignShopItem } from '../types/campaign';
+import { BattleCampaignNode, CampaignActionDefinition, CampaignDefinition, CampaignEffect, CampaignItemDefinition, CampaignItemParameter, CampaignNode, CampaignPrecondition, CampaignRunState, CampaignShopOffer, CampaignShopItem } from '../types/campaign';
 import { CardDefinition } from '../types/card';
 import { TeamSelection } from '../types/battle';
 import { awardCampaignCard, cleanCampaignInventoryItems } from './campaignCollection';
@@ -31,6 +31,24 @@ export function applyCampaignEffects(
       const campaignUnlockIds = [...new Set([...(current.campaignUnlockIds || []), ...unlockIds])];
       if (campaignUnlockIds.length === (current.campaignUnlockIds || []).length) return current;
       return { ...current, campaignUnlockIds };
+    }
+    if (effect.type === 'add_campaign_action') {
+      if (!effect.actionId.trim() || current.availableCampaignActionIds?.includes(effect.actionId)) return current;
+      return { ...current, availableCampaignActionIds: [...(current.availableCampaignActionIds || []), effect.actionId] };
+    }
+    if (effect.type === 'remove_campaign_action') {
+      if (!current.availableCampaignActionIds?.includes(effect.actionId)) return current;
+      return { ...current, availableCampaignActionIds: current.availableCampaignActionIds.filter((id) => id !== effect.actionId) };
+    }
+    if (effect.type === 'go_to_node') {
+      if (!effect.nodeId.trim()) return current;
+      return {
+        ...current,
+        currentNodeId: effect.nodeId,
+        visitedNodeIds: [...current.visitedNodeIds, effect.nodeId],
+        status: 'in_progress',
+        finalOutcome: undefined,
+      };
     }
     if (effect.type === 'set_minimum_mana') {
       if (!Number.isFinite(effect.minimumMana) || effect.minimumMana < 0) return current;
@@ -284,4 +302,81 @@ export function tradeCampaignShopOffer(run: CampaignRunState, offer: CampaignSho
     return { ...item, quantity: item.quantity - spent };
   }).filter((item) => item.quantity > 0);
   return applyCampaignEffects({ ...current, inventory }, offer.effects, cards);
+}
+
+export function getCampaignBuyOfferPayout(
+  offer: CampaignShopOffer,
+  itemName: string,
+  quantity: number,
+  items: CampaignItemDefinition[]
+): number | null {
+  if (offer.offerType !== 'buy' || !Number.isSafeInteger(quantity) || quantity <= 0 || !offer.currencyObject?.trim()) return null;
+  const parameter = offer.valueParameter || CampaignItemParameter.SellValue;
+  if (!Object.values(CampaignItemParameter).includes(parameter)) return null;
+  const item = items.find((entry) => entry.name.trim().toLowerCase() === itemName.trim().toLowerCase());
+  const currency = items.find((entry) => entry.name.trim().toLowerCase() === offer.currencyObject!.trim().toLowerCase());
+  const value = item?.parameters?.[parameter];
+  if (!item || !currency || typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
+  const payout = Math.floor(value * quantity);
+  return Number.isSafeInteger(payout) && payout > 0 ? payout : null;
+}
+
+export function canTradeCampaignBuyOffer(
+  run: CampaignRunState,
+  offer: CampaignShopOffer,
+  itemName: string,
+  quantity: number,
+  items: CampaignItemDefinition[]
+): boolean {
+  if (!meetsCampaignPreconditions(run, offer.preconditions) || getCampaignBuyOfferPayout(offer, itemName, quantity, items) === null) return false;
+  const available = (run.inventory || []).reduce((total, entry) =>
+    entry.object.trim().toLowerCase() === itemName.trim().toLowerCase() && Number.isSafeInteger(entry.quantity) && entry.quantity > 0
+      ? total + entry.quantity
+      : total, 0);
+  return available >= quantity;
+}
+
+export function tradeCampaignBuyOffer(
+  run: CampaignRunState,
+  offer: CampaignShopOffer,
+  itemName: string,
+  quantity: number,
+  items: CampaignItemDefinition[],
+  cards: CardDefinition[] = []
+): CampaignRunState {
+  if (!canTradeCampaignBuyOffer(run, offer, itemName, quantity, items)) return run;
+  const payout = getCampaignBuyOfferPayout(offer, itemName, quantity, items)!;
+  let remaining = quantity;
+  const inventory = (run.inventory || []).map((entry) => {
+    if (entry.object.trim().toLowerCase() !== itemName.trim().toLowerCase() || remaining <= 0) return entry;
+    const sold = Math.min(entry.quantity, remaining);
+    remaining -= sold;
+    return { ...entry, quantity: entry.quantity - sold };
+  }).filter((entry) => entry.quantity > 0);
+  const effects: CampaignEffect[] = [
+    { id: `sell_${offer.id}`, type: 'give_object', object: offer.currencyObject!, quantity: payout },
+    ...offer.effects,
+  ];
+  return applyCampaignEffects({ ...run, inventory }, effects, cards);
+}
+
+export function executeCampaignAction(
+  run: CampaignRunState,
+  action: CampaignActionDefinition,
+  campaign: CampaignDefinition,
+  cards: CardDefinition[]
+): CampaignRunState {
+  const availableIds = run.availableCampaignActionIds ?? (campaign.actions || []).map((entry) => entry.id);
+  if (!availableIds.includes(action.id) || !meetsCampaignPreconditions(run, action.preconditions)) return run;
+  const effects = action.effects.filter((effect) => effect.type !== 'go_to_node' || Boolean(campaign.nodes[effect.nodeId]));
+  const previousNodeId = run.currentNodeId;
+  let updated = applyCampaignEffects(run, effects, cards);
+  const target = campaign.nodes[updated.currentNodeId];
+  if (target && target.id !== previousNodeId) updated = applyCampaignNodeEffects(updated, target, cards);
+  if (target?.type === 'end') {
+    updated = { ...updated, status: 'completed', finalOutcome: target.outcome };
+  } else {
+    updated = { ...updated, status: 'in_progress', finalOutcome: undefined };
+  }
+  return resolveCampaignMultiNodes(updated, campaign, cards);
 }

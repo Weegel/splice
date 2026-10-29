@@ -1,5 +1,5 @@
 import { awardCampaignCard, cleanCampaignInventoryItems, createCampaignCollection, createCampaignRun, getCampaignCollection, reconcileCampaignRunStartingConfiguration } from './campaignCollection';
-import { CampaignDefinition, CampaignPrecondition, CampaignShopOffer } from '../types/campaign';
+import { CampaignActionDefinition, CampaignDefinition, CampaignItemDefinition, CampaignItemParameter, CampaignPrecondition, CampaignShopOffer } from '../types/campaign';
 import { CardDefinition } from '../types/card';
 import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { createElement } from 'react';
@@ -13,7 +13,7 @@ import { CampaignItemSelect } from '../components/CampaignItemSelect';
 import { CampaignEffectsEditor } from '../components/CampaignEffectsEditor';
 import { CampaignUnlocksModal } from '../components/CampaignUnlocksModal';
 import { CampaignPreconditionsEditor } from '../components/CampaignPreconditionsEditor';
-import { applyCampaignBattleOutcomeEffects, applyCampaignEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignShopOffer, tradeCampaignShopOffer, getCampaignPlayerCardIds, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from './campaignEffects';
+import { applyCampaignBattleOutcomeEffects, applyCampaignEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignBuyOffer, canTradeCampaignShopOffer, getCampaignBuyOfferPayout, tradeCampaignBuyOffer, tradeCampaignShopOffer, executeCampaignAction, getCampaignPlayerCardIds, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from './campaignEffects';
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -75,6 +75,31 @@ assert(applyCampaignEffects(unlockedRun, [unlockEffect], cards) === unlockedRun,
 assert(!unlockRun.campaignUnlockIds?.length && !unlockedRun.unlockedCardIds.length, 'Campaign unlocks do not mutate the source run or unlock cards');
 assert(JSON.parse(JSON.stringify(unlockedRun)).campaignUnlockIds.join(',') === 'battle_x,mana_spring', 'Campaign unlock progress survives save serialization');
 assert(!createCampaignRun(campaign, initial).campaignUnlockIds?.length, 'Restarting a campaign clears its unlock progress');
+const homecomingAction: CampaignActionDefinition = {
+  id: 'activate_homecoming_pebble', name: 'Activate Homecoming Pebble',
+  preconditions: [{ id: 'requires_pebble', type: 'has_item', item: 'Homecoming pebble', quantity: 1 }],
+  effects: [
+    { id: 'restore_mana', type: 'set_mana_to_starting_mana' },
+    { id: 'return_to_text', type: 'go_to_node', nodeId: 'return_to_emor' },
+  ],
+};
+const homecomingCampaign: CampaignDefinition = {
+  ...campaign, id: 'test_homecoming_action', campaignMana: true, startingMana: 12, actions: [homecomingAction],
+  nodes: {
+    start: { id: 'start', type: 'text', title: 'Away from Emor', content: '' },
+    return_to_emor: { id: 'return_to_emor', type: 'text', title: 'Return to Emor', content: 'You activate the homecoming pebble and find yourself back in Emor.', nextNodeId: 'emor_hub' },
+    emor_hub: { id: 'emor_hub', type: 'hub', title: 'Emor', prompt: '', choices: [] },
+  },
+};
+const homecomingRun = createCampaignRun(homecomingCampaign, initial);
+const pebbleRun = { ...homecomingRun, mana: 2, inventory: [{ id: 'pebble', object: 'homecoming pebble', quantity: 1 }] };
+const returnedRun = executeCampaignAction(pebbleRun, homecomingAction, homecomingCampaign, cards);
+assert(returnedRun.mana === 12 && returnedRun.currentNodeId === 'return_to_emor' && returnedRun.visitedNodeIds[returnedRun.visitedNodeIds.length - 1] === 'return_to_emor', 'Homecoming action restores starting mana and navigates to its return text node');
+assert(executeCampaignAction(homecomingRun, homecomingAction, homecomingCampaign, cards) === homecomingRun, 'Homecoming action cannot run without its item precondition');
+const grantedActionRun = applyCampaignEffects({ ...homecomingRun, availableCampaignActionIds: [] }, [{ id: 'grant_homecoming', type: 'add_campaign_action', actionId: homecomingAction.id }], cards);
+assert(grantedActionRun.availableCampaignActionIds?.includes(homecomingAction.id) === true, 'Campaign effects can grant an action');
+const removedActionRun = applyCampaignEffects(grantedActionRun, [{ id: 'remove_homecoming', type: 'remove_campaign_action', actionId: homecomingAction.id }], cards);
+assert(!removedActionRun.availableCampaignActionIds?.includes(homecomingAction.id), 'Campaign effects can remove a granted action');
 const hasNotUnlock = { id: 'requires_unreceived_unlock', type: 'has_not_unlock' as const, unlockId: 'mana_spring' };
 assert(meetsCampaignPreconditions(unlockRun, [hasNotUnlock]) && !meetsCampaignPreconditions(unlockedRun, [hasNotUnlock]), 'Has not unlocked passes only while the selected campaign unlock has not been received');
 assert(!meetsCampaignPreconditions(unlockRun, [{ ...hasNotUnlock, unlockId: '' }]), 'A blank has-not-unlocked selection does not pass');
@@ -209,6 +234,39 @@ const shopRun = { ...run, inventory: [
 const shopOffer: CampaignShopOffer = { id: 'hammer', effects: [{ id: 'buy_hammer', type: 'give_object', object: 'Hammer', quantity: 1 }], costs: [
   { object: 'Ore', quantity: 2 }, { object: ' ORE ', quantity: 2 }, { object: 'Fiber', quantity: 2 },
 ] };
+const buyOfferItems: CampaignItemDefinition[] = [
+  { id: 'meat', name: 'Molerat meat', description: '', parameters: { [CampaignItemParameter.SellValue]: 2 } },
+  { id: 'imagination', name: 'Imagination', description: '', parameters: {} },
+];
+const meatBuyOffer: CampaignShopOffer = {
+  id: 'buy_meat', offerType: 'buy', valueParameter: CampaignItemParameter.SellValue, currencyObject: 'Imagination', costs: [], effects: [],
+};
+const meatInventoryRun = { ...run, inventory: [
+  { id: 'meat_stack_1', object: 'Molerat meat', quantity: 1 },
+  { id: 'meat_stack_2', object: 'molerat meat', quantity: 2 },
+] };
+assert(getCampaignBuyOfferPayout(meatBuyOffer, 'Molerat meat', 2, buyOfferItems) === 4, 'Buying offer payout multiplies the configured item property by sale quantity');
+assert(canTradeCampaignBuyOffer(meatInventoryRun, meatBuyOffer, 'Molerat meat', 2, buyOfferItems), 'Buying offers accept eligible inventory items across case-insensitive stacks');
+const soldMeatRun = tradeCampaignBuyOffer(meatInventoryRun, meatBuyOffer, 'Molerat meat', 2, buyOfferItems, cards);
+assert(soldMeatRun.inventory?.reduce((total, item) => total + (item.object.toLowerCase() === 'molerat meat' ? item.quantity : 0), 0) === 1 && soldMeatRun.inventory?.some((item) => item.object === 'Imagination' && item.quantity === 4), 'Buying offers deduct sold items and credit the configured currency');
+assert(meatInventoryRun.inventory.length === 2, 'Buying an item does not mutate the source inventory');
+assert(!canTradeCampaignBuyOffer(meatInventoryRun, meatBuyOffer, 'Molerat meat', 4, buyOfferItems), 'Buying offers reject quantities beyond available inventory');
+assert(!canTradeCampaignBuyOffer(meatInventoryRun, { ...meatBuyOffer, currencyObject: 'Unknown' }, 'Molerat meat', 1, buyOfferItems), 'Buying offers require a registered payout currency');
+assert(!canTradeCampaignBuyOffer(meatInventoryRun, { ...meatBuyOffer, preconditions: [{ id: 'locked', type: 'has_unlock', unlockId: 'battle_x' }] }, 'Molerat meat', 1, buyOfferItems), 'Buying offers respect configured preconditions');
+const buyOfferEditorMarkup = renderToStaticMarkup(createElement(CampaignShopEditor, {
+  node: { id: 'buy_shop', type: 'shop', title: 'Butcher', offers: [{ ...meatBuyOffer, title: 'Buy monster meat' }] },
+  nodes: [], cards, items: buyOfferItems, onChange: () => {},
+}));
+assert(buyOfferEditorMarkup.includes('Buy items') && buyOfferEditorMarkup.includes('Sell value') && buyOfferEditorMarkup.includes('Payout Currency') && buyOfferEditorMarkup.includes('Imagination'), 'Buying offer editor exposes the value property and payout currency');
+const manaSpringEffectOffer: CampaignShopOffer = {
+  id: 'upgrade_mana_spring', title: 'Upgrade mana spring', offerType: 'effect',
+  costs: [{ object: 'Imagination', quantity: 100 }],
+  effects: [{ id: 'upgrade_starting_mana', type: 'set_starting_mana', mana: 12 }],
+};
+const manaSpringInventoryRun = { ...run, initialMana: 10, startingMana: 10, mana: 4, inventory: [{ id: 'imagination', object: 'Imagination', quantity: 125 }] };
+assert(canTradeCampaignShopOffer(manaSpringInventoryRun, manaSpringEffectOffer, cards), 'An affordable Effect offer can be purchased');
+const manaSpringUpgradedRun = tradeCampaignShopOffer(manaSpringInventoryRun, manaSpringEffectOffer, cards);
+assert(manaSpringUpgradedRun.startingMana === 12 && manaSpringUpgradedRun.mana === 4 && manaSpringUpgradedRun.inventory?.[0].quantity === 25, 'Effect offer charges its price and upgrades starting mana without changing current mana');
 const tradedRun = tradeCampaignShopOffer(shopRun, shopOffer);
 assert(canTradeCampaignShopOffer(shopRun, shopOffer), 'Shop costs aggregate duplicate requirements and inventory stacks case-insensitively');
 const gatedShopOffer: CampaignShopOffer = {
@@ -416,12 +474,37 @@ Object.defineProperty(globalThis, 'localStorage', {
   },
 });
 try {
+  const legacyEmorCampaign: CampaignDefinition = { ...campaign, id: 'campaign_custom_1791371731769', name: 'The splintered paths of Emor' };
+  const canonicalEmorCampaign: CampaignDefinition = { ...legacyEmorCampaign, id: 'campaign_splintered_paths_of_emor' };
+  assert(StorageService.importCampaignsJson(JSON.stringify(legacyEmorCampaign)).success, 'Legacy Emor campaign IDs can be loaded');
+  const migratedEmor = StorageService.getCustomCampaigns().filter((entry) => entry.name === 'The splintered paths of Emor');
+  assert(migratedEmor.length === 1 && migratedEmor[0].id === canonicalEmorCampaign.id, 'Legacy Emor campaign IDs migrate to the canonical default ID');
+  assert(StorageService.importCampaignsJson(JSON.stringify([legacyEmorCampaign, canonicalEmorCampaign])).success, 'Duplicate Emor campaign IDs can be loaded for migration');
+  const mergedEmor = StorageService.getCustomCampaigns().filter((entry) => entry.name === 'The splintered paths of Emor');
+  assert(mergedEmor.length === 1 && mergedEmor[0].id === canonicalEmorCampaign.id, 'Legacy and canonical Emor entries merge into one stored campaign');
   assert(StorageService.importCampaignsJson(JSON.stringify(unlockCampaign)).success, 'Campaign unlock definitions can be imported');
   const savedUnlockCampaign = (JSON.parse(StorageService.exportCampaignsJson()) as CampaignDefinition[]).find((entry) => entry.id === unlockCampaign.id);
   assert(savedUnlockCampaign?.unlocks?.[1].id === 'mana_spring' && savedUnlockCampaign.unlocks[1].description === 'Purchase the spring upgrade.', 'Campaign unlock IDs, names, and descriptions survive export');
   StorageService.saveCampaignRun({ ...unlockedRun, campaignId: unlockCampaign.id });
   const unlockPlayerMarkup = renderToStaticMarkup(createElement(CampaignPlayer, { campaign: unlockCampaign, cards, challenges: [], onExit: () => {} }));
   assert(unlockPlayerMarkup.includes('Unlocks (2/2)'), 'Campaign playback resumes saved unlock progress independently of card unlocks');
+  const offerVisibilityCampaign: CampaignDefinition = {
+    ...campaign,
+    id: 'offer_visibility_campaign',
+    startNodeId: 'offer_shop',
+    nodes: { offer_shop: { id: 'offer_shop', type: 'shop', title: 'Test Shop', offers: [
+      { id: 'locked_offer', title: 'Locked Offer', costs: [], effects: [{ id: 'locked_reward', type: 'give_mana', quantity: 1 }], preconditions: [{ id: 'requires_flag', type: 'has_unlock', unlockId: 'not_yet' }] },
+      { id: 'available_offer', title: 'Available Offer', costs: [], effects: [{ id: 'available_reward', type: 'give_mana', quantity: 1 }] },
+    ] } },
+  };
+  const offerVisibilityMarkup = renderToStaticMarkup(createElement(CampaignPlayer, { campaign: offerVisibilityCampaign, cards, challenges: [], onExit: () => {} }));
+  assert(offerVisibilityMarkup.includes('Available Offer') && !offerVisibilityMarkup.includes('Locked Offer') && !offerVisibilityMarkup.includes('Requires unlock: Unavailable unlock'), 'Shop offers with unmet preconditions are hidden while eligible offers remain visible');
+  const allOffersLockedCampaign: CampaignDefinition = {
+    ...offerVisibilityCampaign, id: 'all_offers_locked_campaign',
+    nodes: { offer_shop: { id: 'offer_shop', type: 'shop', title: 'Test Shop', offers: [offerVisibilityCampaign.nodes.offer_shop.type === 'shop' ? offerVisibilityCampaign.nodes.offer_shop.offers[0] : { id: 'missing', costs: [], effects: [] }] } },
+  };
+  const allOffersLockedMarkup = renderToStaticMarkup(createElement(CampaignPlayer, { campaign: allOffersLockedCampaign, cards, challenges: [], onExit: () => {} }));
+  assert(allOffersLockedMarkup.includes('No available offers') && !allOffersLockedMarkup.includes('Locked Offer'), 'A shop with only locked offers shows the no-available-offers state');
   const architectCampaign: CampaignDefinition = {
     ...manaCampaign, id: 'test_architect_shop', startNodeId: 'architect', inventory: [{ id: 'wood', object: 'Wood', quantity: 10 }],
     nodes: {
@@ -435,6 +518,17 @@ try {
   assert(getCampaignPlayerCardIds(architectCampaign).includes(reward.id), 'Shop effect-granted cards are included in campaign packaging');
   const architectMarkup = renderToStaticMarkup(createElement(CampaignPlayer, { campaign: architectCampaign, cards, challenges: [], onExit: () => {} }));
   assert(architectMarkup.includes('Upgrade Manaspring') && architectMarkup.includes('+12 starting mana') && architectMarkup.includes('Leave'), 'The architect shop renders upgrade effects and a Leave button');
+  const shopPriceCampaign: CampaignDefinition = {
+    ...campaign,
+    id: 'shop_price_inventory',
+    startNodeId: 'price_shop',
+    inventory: [{ id: 'starting_wood', object: 'Wood', quantity: 3 }],
+    nodes: { price_shop: { id: 'price_shop', type: 'shop', title: 'Wood Trader', offers: [{
+      id: 'wood_trade', title: 'Trade wood', costs: [{ object: 'Wood', quantity: 2 }], effects: [{ id: 'wood_trade_reward', type: 'give_mana', quantity: 1 }],
+    }] } },
+  };
+  const shopPriceMarkup = renderToStaticMarkup(createElement(CampaignPlayer, { campaign: shopPriceCampaign, cards, challenges: [], onExit: () => {} }));
+  assert(shopPriceMarkup.includes('2 x Wood (3 available)') && !shopPriceMarkup.includes('3 x Wood'), 'Shop prices show available item quantities without repeating the inventory list');
   if (savedArchitect?.type === 'shop') {
     const shopEditorMarkup = renderToStaticMarkup(createElement(CampaignShopEditor, { node: savedArchitect, nodes: Object.values(architectCampaign.nodes), cards, items: getCampaignItems(architectCampaign), onChange: () => {} }));
     assert(shopEditorMarkup.includes('Increase starting mana') && shopEditorMarkup.includes('Set mana to starting mana') && shopEditorMarkup.includes('Offer Effects') && !shopEditorMarkup.includes('Item Reward'), 'Shop editing uses effects for all rewards without a separate item reward control');
@@ -494,6 +588,7 @@ try {
           { id: 'tavern_building', text: 'Village Tavern', description: 'Meet the innkeeper.', imageUrl: '/test-tavern.png', nextNodeId: 'tavern' },
           { id: 'market_building', text: 'Village Market', description: 'Visit the merchants.', nextNodeId: 'market' },
           { id: 'closed_building', text: 'Closed Guild', nextNodeId: 'missing' },
+          { id: 'locked_building', type: 'node', text: 'Locked Grove', nextNodeId: 'tavern', preconditions: [{ id: 'requires_lost_key', type: 'has_unlock', unlockId: 'lost_key' }] },
           { id: 'campfire_event', type: 'event', text: 'Campfire Event', nextNodeId: 'tavern' },
           { id: 'trader_shop', type: 'shop', text: 'Traveling Trader', nextNodeId: 'market' },
           { id: 'supply_shop_poi', type: 'shop', text: 'Supply Shop', description: 'Outdated POI description.', nextNodeId: 'supply_shop' },
@@ -509,7 +604,7 @@ try {
   const exported: CampaignDefinition[] = JSON.parse(StorageService.exportCampaignsJson());
   const exportedHub = exported.find((item) => item.id === hubCampaign.id)?.nodes.hub;
   assert(exportedHub?.type === 'hub' && exportedHub.choices[0].imageUrl === '/test-tavern.png', 'Hub points of interest and images survive JSON export');
-  assert(exportedHub?.type === 'hub' && exportedHub.choices[3].type === 'event' && exportedHub.choices[4].type === 'shop', 'Event and Shop point types survive JSON import and export');
+  assert(exportedHub?.type === 'hub' && exportedHub.choices[4].type === 'event' && exportedHub.choices[5].type === 'shop', 'Event and Shop point types survive JSON import and export');
   const renderHub = () => renderToStaticMarkup(createElement(CampaignPlayer, {
     campaign: hubCampaign, cards, challenges: [], onExit: () => {},
   }));
@@ -524,7 +619,7 @@ try {
     const emptyShopDescriptionMarkup = renderHub();
     assert(!emptyShopDescriptionMarkup.includes('Updated shop supplies.') && !emptyShopDescriptionMarkup.includes('Outdated POI description.'), 'A shop without a description does not fall back to stale POI text');
   }
-  assert(/<button[^>]*disabled=""[^>]*>[\s\S]*?Closed Guild/.test(hubMarkup) && hubMarkup.includes('Unavailable'), 'Points of interest with missing destinations are disabled');
+  assert(!hubMarkup.includes('Closed Guild') && !hubMarkup.includes('Locked Grove'), 'Hub points with missing destinations or unmet preconditions are hidden');
   const getPointButtonMarkup = (name: string) => {
     const labelIndex = hubMarkup.indexOf(name);
     const buttonStart = hubMarkup.lastIndexOf('<button', labelIndex);
@@ -532,7 +627,7 @@ try {
     return buttonStart >= 0 && buttonEnd >= 0 ? hubMarkup.slice(buttonStart, buttonEnd) : '';
   };
   assert(!getPointButtonMarkup('Village Tavern').includes('disabled=""'), 'Legacy points without a type remain available Node destinations');
-  assert(getPointButtonMarkup('Campfire Event').includes('disabled=""') && getPointButtonMarkup('Traveling Trader').includes('disabled=""'), 'Event and Shop entries cannot follow stored node links before their behavior is defined');
+  assert(!hubMarkup.includes('Campfire Event') && !hubMarkup.includes('Traveling Trader'), 'Unconfigured events and invalid shop destinations are hidden from hubs');
   const visitedHubRun = createCampaignRun(hubCampaign, initial);
   visitedHubRun.visitedNodeIds.push('tavern', 'hub');
   StorageService.saveCampaignRun(visitedHubRun);

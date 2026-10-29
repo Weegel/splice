@@ -589,7 +589,8 @@ export class BattleEngine {
       }
     }
 
-    // 5. Round End Effects (Earthquake)
+    // 5. Round End Effects (Poison, Earthquake)
+    this.processRoundEndEffects();
     if (this.hasRuleset('Earthquake')) {
       this.processEarthquake();
     }
@@ -607,13 +608,6 @@ export class BattleEngine {
   private processRoundStartEffects(): void {
     const allLiving = [...this.getAliveMonsters(1), ...this.getAliveMonsters(2)];
 
-    // Poison damage (2 damage directly to health)
-    for (const monster of allLiving) {
-      if (monster.isPoisoned && monster.isAlive) {
-        this.applyDirectHealthDamage(monster, 2, 'Poison', 'POISON_TICK');
-      }
-    }
-
     // Fatigue (if round > 20, deals increasing damage: round - 20)
     if (this.currentRound > 20) {
       const fatigueDamage = this.currentRound - 20;
@@ -624,6 +618,14 @@ export class BattleEngine {
         if (monster.isAlive) {
           this.applyDirectHealthDamage(monster, fatigueDamage, 'Fatigue', 'FATIGUE_TICK');
         }
+      }
+    }
+  }
+
+  private processRoundEndEffects(): void {
+    for (const monster of [...this.getAliveMonsters(1), ...this.getAliveMonsters(2)]) {
+      if (monster.isPoisoned && monster.isAlive) {
+        this.applyDirectHealthDamage(monster, 2, 'Poison', 'POISON_TICK');
       }
     }
   }
