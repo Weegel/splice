@@ -1,3 +1,6 @@
 *
 !.gitignore
 !README.md
+!campaigns/
+campaigns/*
+!campaigns/campaign_campaign_splintered_paths_of_emor.json

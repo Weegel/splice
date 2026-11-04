@@ -210,7 +210,8 @@ const localWorkspacePlugin = () => ({
           const progress = JSON.parse((await fs.readFile(path.join(root, 'campaign_runs.json'), 'utf8')).replace(/^\uFEFF/, ''))
           if (progress.runs && typeof progress.runs === 'object' && !Array.isArray(progress.runs)) result.campaignRuns = progress.runs
         } catch (error: any) {
-          if (error?.code !== 'ENOENT') console.warn('Could not load local/campaign_runs.json', error)
+          if (error?.code === 'ENOENT') result.campaignRuns = {}
+          else console.warn('Could not load local/campaign_runs.json', error)
         }
         try {
           const profileState = JSON.parse((await fs.readFile(path.join(root, 'profiles.json'), 'utf8')).replace(/^\uFEFF/, ''))
@@ -219,7 +220,8 @@ const localWorkspacePlugin = () => ({
             result.activeProfileId = profileState.activeProfileId || null
           }
         } catch (error: any) {
-          if (error?.code !== 'ENOENT') console.warn('Could not load local/profiles.json', error)
+          if (error?.code === 'ENOENT') result.profiles = []
+          else console.warn('Could not load local/profiles.json', error)
         }
         await migrateBattleFileNames(root)
         const folders = [

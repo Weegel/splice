@@ -8,6 +8,8 @@ import { BattlePreparation } from '../components/BattlePreparation';
 import { CampaignPlayer } from '../components/CampaignPlayer';
 import { CampaignShopEditor } from '../components/CampaignShopEditor';
 import { StorageService } from './storage';
+import { DEFAULT_CAMPAIGNS } from './defaultCampaigns';
+import { PvEChallenge } from '../types/battle';
 import { LocalWorkspaceService } from '../services/localWorkspace';
 import { getCampaignItems, parseCampaignItemParameters, saveCampaignItem } from './campaignItems';
 import { renameCampaignNode } from './campaignNodes';
@@ -547,6 +549,34 @@ LocalWorkspaceService.writeCampaignRuns = async (runs) => {
   return true;
 };
 try {
+  const demo = DEFAULT_CAMPAIGNS.find((entry) => entry.id === 'campaign_splintered_paths_of_emor');
+  assert(Boolean(demo), 'The release includes the Splintered Paths demo campaign');
+  const demoCards = demo!.embeddedCards || [];
+  const demoBattles = demo!.embeddedChallenges || [];
+  assert(demoCards.length > 0 && demoCards.every((card) => StorageService.getCards().some((entry) => entry.id === card.id)), 'Bundled demo cards appear in the Card Forge library without local-file hydration');
+  assert(demoBattles.length > 0 && demoBattles.every((battle) => StorageService.getChallenges().some((entry) => entry.id === battle.id)), 'Bundled demo battles appear in the battle library without local-file hydration');
+
+  const nestedCard: CardDefinition = { ...reward, id: 'custom_nested_campaign_card', name: 'Nested Campaign Card' };
+  const nestedBattle: PvEChallenge = {
+    id: 'nested_campaign_battle', name: 'Nested Campaign Battle', description: '', manaCap: 20, rulesets: ['Standard'], allowedSplinters: ['Earth'],
+    enemyTeam: { summonerId: null, summonerLevel: 1, monsters: [{ cardId: nestedCard.id, level: 1 }] },
+    embeddedCards: [nestedCard],
+  };
+  const nestedCampaign: CampaignDefinition = {
+    ...campaign, id: 'nested_content_campaign',
+    nodes: { start: { id: 'start', type: 'battle', title: 'Nested Battle', inlineChallenge: nestedBattle } },
+  };
+  storedValues.set('splinter_custom_campaigns', JSON.stringify([nestedCampaign]));
+  assert(StorageService.getCards().some((card) => card.id === nestedCard.id && card.isCustom)
+    && StorageService.getChallenges().some((battle) => battle.id === nestedBattle.id), 'Inline campaign battles and their embedded custom cards are available without separate files');
+  storedValues.set('splinter_custom_cards', JSON.stringify([{ ...nestedCard, name: 'Standalone Card Edit' }]));
+  storedValues.set('splinter_custom_challenges', JSON.stringify([{ ...nestedBattle, name: 'Standalone Battle Edit' }]));
+  assert(StorageService.getCards().find((card) => card.id === nestedCard.id)?.name === 'Standalone Card Edit'
+    && StorageService.getChallenges().find((battle) => battle.id === nestedBattle.id)?.name === 'Standalone Battle Edit', 'Standalone card and battle edits override campaign snapshots');
+  storedValues.delete('splinter_custom_campaigns');
+  storedValues.delete('splinter_custom_cards');
+  storedValues.delete('splinter_custom_challenges');
+
   StorageService.saveCampaignRun(syncedRun);
   assert(persistedRuns[0][syncedRun.campaignId].currentNodeId === syncedRun.currentNodeId, 'Saving campaign progress also writes its complete run to disk');
   storedValues.delete('splinter_campaign_runs');

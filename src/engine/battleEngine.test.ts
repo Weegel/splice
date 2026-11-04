@@ -275,7 +275,7 @@ function runTests() {
     assert(grownMonster?.maxHealth === 6 && grownMonster.currentHealth === 6, 'Scavenger gains one maximum and current Health when an enemy dies');
   }
 
-  // TEST 12: Untrainable blocks summoner-granted abilities
+  // TEST 12: Untrainable allows ability grants but blocks Weapons Training
   {
     const summoner: CardDefinition = {
       id: 'test_ability_summoner', name: 'Ability Summoner', splinter: 'Life', cardType: 'Summoner', rarity: 'Common',
@@ -291,7 +291,7 @@ function runTests() {
     const team2: TeamSelection = { summonerId: null, summonerLevel: 1, monsters: [{ cardId: enemy.id, level: 1 }] };
     const log = new BattleEngine([summoner, untrainable, enemy], ['Standard'], 2, team1, team2, undefined, { seed: 6 }).resolve();
     const summonerApplied = log.events.find((event) => event.type === 'SUMMONER_APPLY' && event.text.includes('Team 1'));
-    assert(Boolean(summonerApplied) && !summonerApplied!.boardSnapshot.team1[0].abilities.includes('Flying'), 'Untrainable prevents summoner-granted abilities');
+    assert(Boolean(summonerApplied) && summonerApplied!.boardSnapshot.team1[0].abilities.includes('Flying'), 'Untrainable allows summoner-granted abilities');
     const meleeUntrainable: CardDefinition = {
       ...untrainable,
       id: 'test_untrainable_melee',
@@ -300,7 +300,19 @@ function runTests() {
     const ruleTeam: TeamSelection = { summonerId: null, summonerLevel: 1, monsters: [{ cardId: meleeUntrainable.id, level: 1 }] };
     const ruleLog = new BattleEngine([meleeUntrainable, enemy], ['Super Sneak'], 2, ruleTeam, team2, undefined, { seed: 9 }).resolve();
     const sneakRule = ruleLog.events.find((event) => event.ruleset === 'Super Sneak');
-    assert(Boolean(sneakRule) && !sneakRule!.boardSnapshot.team1[0].abilities.includes('Sneak'), 'Untrainable prevents rule-set-granted abilities');
+    assert(Boolean(sneakRule) && sneakRule!.boardSnapshot.team1[0].abilities.includes('Sneak'), 'Untrainable allows rule-set-granted abilities');
+    const trainer: CardDefinition = {
+      ...meleeUntrainable, id: 'test_untrainable_trainer', name: 'Trainer',
+      stats: [{ ...meleeUntrainable.stats[0], attack: 3, abilities: ['Weapons Training'] }],
+    };
+    const trainingTeam: TeamSelection = {
+      summonerId: null, summonerLevel: 1,
+      monsters: [{ cardId: trainer.id, level: 1 }, { cardId: untrainable.id, level: 1 }],
+    };
+    const trainingLog = new BattleEngine([trainer, untrainable, enemy], ['Standard'], 2, trainingTeam, team2, undefined, { seed: 6, maxRounds: 1 }).resolve();
+    const trainingEnd = trainingLog.events.find((event) => event.type === 'BATTLE_END')?.boardSnapshot.team1[1];
+    assert(trainingEnd?.attackType === 'None' && trainingEnd.currentAttack === 0
+      && !trainingLog.events.some((event) => event.ability === 'Weapons Training' && event.targetName === untrainable.name), 'Untrainable prevents adjacent Weapons Training');
   }
 
   // TEST 13: Weapons Training grants adjacent no-attack units an attack

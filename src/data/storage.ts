@@ -142,6 +142,14 @@ export class StorageService {
       DEFAULT_PVE_CARDS.forEach((card) => {
         cardMap.set(card.id, { ...card, isCustom: true });
       });
+      const campaignCards = [
+        ...this.getCampaigns().flatMap((campaign) => campaign.embeddedCards || []),
+        ...this.getEmbeddedCampaignChallenges().flatMap((challenge) => challenge.embeddedCards || []),
+      ];
+      campaignCards.forEach((card) => {
+        const official = isOfficialSplCardId(card.id);
+        if (!official || !cardMap.has(card.id)) cardMap.set(card.id, { ...card, isCustom: !official });
+      });
       const customCards = this.getCustomCards();
       customCards.forEach((c) => {
         cardMap.set(c.id, { ...c, isCustom: true });
@@ -250,15 +258,20 @@ export class StorageService {
   }
 
   // --- CHALLENGES ---
+  private static getEmbeddedCampaignChallenges(): PvEChallenge[] {
+    return this.getCampaigns().flatMap((campaign) => [
+      ...(campaign.embeddedChallenges || []),
+      ...Object.values(campaign.nodes).flatMap((node) => node.type === 'battle' && node.inlineChallenge ? [node.inlineChallenge] : []),
+    ]);
+  }
+
   static getChallenges(): PvEChallenge[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CHALLENGES);
-      if (!stored) {
-        return DEFAULT_CHALLENGES;
-      }
-      const customChallenges: PvEChallenge[] = JSON.parse(stored);
+      const customChallenges: PvEChallenge[] = stored ? JSON.parse(stored) : [];
       const challengeMap = new Map<string, PvEChallenge>();
       DEFAULT_CHALLENGES.forEach((ch) => challengeMap.set(ch.id, ch));
+      this.getEmbeddedCampaignChallenges().forEach((challenge) => challengeMap.set(challenge.id, challenge));
       customChallenges.forEach((ch) => challengeMap.set(ch.id, { ...ch, isCustom: true }));
       return Array.from(challengeMap.values());
     } catch (e) {

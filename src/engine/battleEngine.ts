@@ -289,7 +289,7 @@ export class BattleEngine {
     // Ruleset: Holy Protection
     if (this.hasRuleset('Holy Protection')) {
       allMonsters.forEach((m) => {
-        if (!m.abilities.includes('Untrainable') || m.abilities.includes('Divine Shield')) m.hasDivineShield = true;
+        m.hasDivineShield = true;
         this.grantAbility(m, 'Divine Shield');
       });
       this.addEvent('RULESET_APPLIED', 'Holy Protection: All monsters gain Divine Shield', {
@@ -506,7 +506,7 @@ export class BattleEngine {
   }
 
   private grantAbility(monster: CombatMonsterState, ability: Ability): void {
-    if (monster.abilities.includes('Untrainable') || monster.abilities.includes(ability)) return;
+    if (monster.abilities.includes(ability)) return;
     monster.abilities.push(ability);
   }
 
@@ -538,7 +538,7 @@ export class BattleEngine {
         const trainerPosition = team.indexOf(trainer);
         for (const adjacentPosition of [trainerPosition - 1, trainerPosition + 1]) {
           const trainee = team[adjacentPosition];
-          if (!trainee?.isAlive || trainee.attackType !== 'None' || trainee.currentAttack > 0) continue;
+          if (!trainee?.isAlive || trainee.abilities.includes('Untrainable') || trainee.attackType !== 'None' || trainee.currentAttack > 0) continue;
           trainee.baseAttack = Math.min(3, trainer.baseAttack);
           trainee.currentAttack = Math.min(3, trainer.currentAttack);
           trainee.attackType = trainer.attackType;
@@ -975,7 +975,7 @@ export class BattleEngine {
           .filter((ability, index, abilities) => index === abilities.indexOf(ability) && !excludedMimicAbilities.includes(ability));
         for (const mimic of team.filter((monster) => monster.abilities.includes('Mimic'))) {
           const eligible = enemyAbilities.filter((ability) => !mimic.abilities.includes(ability));
-          if (eligible.length === 0 || mimic.abilities.includes('Untrainable')) continue;
+          if (eligible.length === 0) continue;
           const copied = eligible[Math.floor(this.random() * eligible.length)];
           this.grantAbility(mimic, copied);
           this.addEvent('STATUS_APPLY', `${mimic.name} copies ${copied} with Mimic!`, { actor: mimic, target: mimic, ability: 'Mimic' });

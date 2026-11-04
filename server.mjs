@@ -161,14 +161,16 @@ const server = http.createServer(async (req, res) => {
         const parsed = JSON.parse((await fs.readFile(profilesPath, 'utf8')).replace(/^\uFEFF/, ''));
         if (Array.isArray(parsed.profiles)) profileState = { profiles: parsed.profiles, activeProfileId: parsed.activeProfileId || null };
       } catch (error) {
-        if (error.code !== 'ENOENT') console.warn('Could not load local/profiles.json', error.message);
+        if (error.code === 'ENOENT') profileState = { profiles: [], activeProfileId: null };
+        else console.warn('Could not load local/profiles.json', error.message);
       }
       let campaignRuns = null;
       try {
         const parsed = JSON.parse((await fs.readFile(campaignRunsPath, 'utf8')).replace(/^\uFEFF/, ''));
         if (parsed.runs && typeof parsed.runs === 'object' && !Array.isArray(parsed.runs)) campaignRuns = parsed.runs;
       } catch (error) {
-        if (error.code !== 'ENOENT') console.warn('Could not load local/campaign_runs.json', error.message);
+        if (error.code === 'ENOENT') campaignRuns = {};
+        else console.warn('Could not load local/campaign_runs.json', error.message);
       }
       sendJson(res, 200, { cards, campaigns, challenges: battles.filter((item) => item?.enemyTeam), battleLogs: battles.filter((item) => item?.events), ...profileState, campaignRuns });
       return;

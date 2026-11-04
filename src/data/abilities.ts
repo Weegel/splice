@@ -273,7 +273,7 @@ export const ABILITY_METAS: Record<Ability, AbilityMeta> = {
   },
   Untrainable: {
     name: 'Untrainable',
-    description: 'This Monster cannot gain additional abilities during battle.',
+    description: 'This Monster cannot receive an attack from Weapons Training.',
     type: 'passive',
   },
   'Weapons Training': {
