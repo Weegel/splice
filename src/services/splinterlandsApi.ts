@@ -3,6 +3,8 @@ import { CardDefinition, CardStatLevel, Splinter, CardType, AttackType, Rarity, 
 export interface SplinterlandsRawCardDetail {
   id: number;
   name: string;
+  sub_type?: string;
+  is_gladiator?: boolean;
   color: string; // "Red", "Blue", "Green", "White", "Black", "Gold", "Gray"
   type: string; // "Monster" | "Summoner"
   rarity: number; // 1: Common, 2: Rare, 3: Epic, 4: Legendary
@@ -15,6 +17,19 @@ export interface SplinterlandsRawCardDetail {
     health?: number | number[];
     speed?: number | number[];
     abilities?: (string | string[])[];
+    racialSynergy?: { race: string; abilities?: string[]; stat_buff?: number[] }[];
+    ptrOptions?: {
+      id: string;
+      name: string;
+      description?: string;
+      effect?: string;
+      stat_buff?: number[];
+      abilities?: string[];
+      status_effects?: string[];
+      target?: string;
+      target_type?: string;
+      max?: number;
+    }[];
   };
 }
 
@@ -437,11 +452,30 @@ export class SplinterlandsApiService {
       return {
         id: `spl_${detail.id}`,
         name: detail.name,
+        isGladiator: detail.is_gladiator,
+        bloodline: detail.sub_type,
         splinter,
         cardType,
         rarity,
         stats: statsList,
         summonerBuffs,
+        racialSynergy: statsObj.racialSynergy?.map((synergy: any) => ({
+          race: synergy.race,
+          abilities: (synergy.abilities || []) as Ability[],
+          statBuff: synergy.stat_buff,
+        })),
+        summonerOptions: statsObj.ptrOptions?.map((option: any) => ({
+          id: option.id,
+          name: option.name,
+          description: option.description,
+          effect: option.effect,
+          statBuff: option.stat_buff,
+          abilities: option.abilities,
+          statusEffects: option.status_effects,
+          target: option.target,
+          targetType: option.target_type,
+          max: option.max,
+        })),
         imageUrl: `https://d36mxiodh3r3b5.cloudfront.net/cards_by_level/beta/${detail.name.replace(/ /g, '%20')}_lv1.png`,
       };
     } catch {

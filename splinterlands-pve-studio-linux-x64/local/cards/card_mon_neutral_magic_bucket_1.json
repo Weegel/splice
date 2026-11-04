@@ -1,0 +1,21 @@
+{
+  "id": "mon_neutral_magic_bucket(1)",
+  "name": "Magic bucket",
+  "splinter": "Neutral",
+  "cardType": "Monster",
+  "rarity": "Common",
+  "isCustom": true,
+  "description": "A bucket filled with water, used to clean, but may also clean your path of enemies. Eventually.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 2,
+      "attack": 1,
+      "attackType": "Ranged",
+      "speed": 1,
+      "armor": 0,
+      "health": 1,
+      "abilities": []
+    }
+  ]
+}

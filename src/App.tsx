@@ -72,6 +72,12 @@ export default function App() {
 
   useEffect(() => {
     void LocalWorkspaceService.loadLocalCreations().then((localCreations) => {
+      if (localCreations.campaignRuns != null) {
+        StorageService.hydrateCampaignRuns(localCreations.campaignRuns);
+      } else {
+        const existingRuns = StorageService.getCampaignRuns();
+        if (Object.keys(existingRuns).length > 0) void LocalWorkspaceService.writeCampaignRuns(existingRuns);
+      }
       if (localCreations.profiles) {
         StorageService.hydrateProfiles(localCreations.profiles, localCreations.activeProfileId);
       } else {
@@ -160,8 +166,10 @@ export default function App() {
   };
 
   const handlePlayCampaign = (campaign: CampaignDefinition) => {
-    if (!playerCollection) {
-      setIsProfileModalOpen(true);
+    if (campaign.collectionSource !== 'custom' && !playerCollection) {
+      if (window.confirm('This campaign requires your account to be synced. Sync your account now?')) {
+        setIsProfileModalOpen(true);
+      }
       return;
     }
     setActiveCampaign(campaign);

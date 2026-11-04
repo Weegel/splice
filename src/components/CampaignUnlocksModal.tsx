@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import { CampaignUnlockDefinition } from '../types/campaign';
 
 interface CampaignUnlocksModalProps {
   unlocks: CampaignUnlockDefinition[];
   autosaveStatus: 'saving' | 'saved' | 'error';
   onSave: (unlock: CampaignUnlockDefinition) => void;
+  onDelete: (unlockId: string) => void;
   onClose: () => void;
 }
 
-export function CampaignUnlocksModal({ unlocks, autosaveStatus, onSave, onClose }: CampaignUnlocksModalProps) {
+export function CampaignUnlocksModal({ unlocks, autosaveStatus, onSave, onDelete, onClose }: CampaignUnlocksModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(unlocks[0]?.id || null);
   const [draft, setDraft] = useState(() => ({ name: unlocks[0]?.name || '', description: unlocks[0]?.description || '' }));
   const [error, setError] = useState('');
@@ -17,6 +18,11 @@ export function CampaignUnlocksModal({ unlocks, autosaveStatus, onSave, onClose 
     setSelectedId(unlock?.id || null);
     setDraft({ name: unlock?.name || '', description: unlock?.description || '' });
     setError('');
+  };
+  const deleteUnlock = (unlock: CampaignUnlockDefinition) => {
+    if (!confirm(`Delete "${unlock.name}"? Existing references will remain and need to be updated.`)) return;
+    onDelete(unlock.id);
+    if (selectedId === unlock.id) selectUnlock(unlocks.find((entry) => entry.id !== unlock.id));
   };
   const updateDraft = (changes: Partial<typeof draft>) => {
     const next = { ...draft, ...changes };
@@ -55,7 +61,11 @@ export function CampaignUnlocksModal({ unlocks, autosaveStatus, onSave, onClose 
             <div className="max-h-48 overflow-y-auto sm:max-h-80">
               {!unlocks.length && <p className="py-3 text-xs text-slate-500">No campaign unlocks.</p>}
               {unlocks.map((unlock) => (
-                <button key={unlock.id} type="button" aria-pressed={selectedId === unlock.id} onClick={() => selectUnlock(unlock)} className={`block w-full break-words border-b border-slate-800 px-2 py-3 text-left text-sm ${selectedId === unlock.id ? 'bg-slate-800 text-amber-200' : 'text-slate-300'}`}>{unlock.name}</button>
+                <div key={unlock.id} className={`flex items-center gap-1 border-b border-slate-800 ${selectedId === unlock.id ? 'bg-slate-800' : ''}`}>
+                  <button type="button" aria-pressed={selectedId === unlock.id} onClick={() => selectUnlock(unlock)} className={`min-w-0 flex-1 break-words px-2 py-3 text-left text-sm ${selectedId === unlock.id ? 'text-amber-200' : 'text-slate-300'}`}>{unlock.name}</button>
+                  <button type="button" title={`Delete ${unlock.name}`} aria-label={`Delete ${unlock.name}`} onClick={() => deleteUnlock(unlock)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-rose-400 hover:bg-rose-950"><Trash2 className="h-4 w-4" /></button>
+                </div>
               ))}
             </div>
           </div>

@@ -1,0 +1,52 @@
+{
+  "id": "pve_custom_1792482829551",
+  "name": "Molerat ambush",
+  "description": "A tranquil meadow was turned into a dangerous ambush when a molerat lunges out of the ground.",
+  "manaCap": 12,
+  "rulesets": [
+    "Standard"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": null,
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "mon_life_giant_molerat(1)",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "mon_life_giant_molerat(1)",
+      "name": "Giant molerat",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A giant molerat. Digging through the ground, gorging on worms and beetles they eventually get big enough to look for larger prey on the surface.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 4,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 0,
+          "health": 5,
+          "abilities": []
+        }
+      ]
+    }
+  ]
+}

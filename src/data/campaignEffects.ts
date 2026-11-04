@@ -145,6 +145,10 @@ export function meetsCampaignPreconditions(run: CampaignRunState, preconditions?
       const unlocked = Boolean(run.unlockedCardIds?.includes(precondition.cardId));
       return precondition.type === 'card_unlocked' ? unlocked : !unlocked;
     }
+    if (precondition.type === 'has_mana') {
+      const mana = run.mana ?? 0;
+      return Number.isSafeInteger(precondition.mana) && precondition.mana >= 0 && Number.isFinite(mana) && mana >= precondition.mana;
+    }
     if (precondition.type === 'has_item') {
       if (!precondition.item.trim() || !Number.isSafeInteger(precondition.quantity) || precondition.quantity < 0) return false;
       const quantity = (run.inventory || []).reduce((total, item) =>
@@ -155,6 +159,13 @@ export function meetsCampaignPreconditions(run: CampaignRunState, preconditions?
     }
     return false;
   });
+}
+
+export function getAvailableCampaignActions(run: CampaignRunState, campaign: CampaignDefinition): CampaignActionDefinition[] {
+  const availableIds = run.availableCampaignActionIds ?? (campaign.actions || []).map((action) => action.id);
+  return (campaign.actions || []).filter((action) =>
+    availableIds.includes(action.id) && meetsCampaignPreconditions(run, action.unlockPreconditions)
+  );
 }
 
 export function resolveCampaignMultiNodes(
@@ -367,7 +378,7 @@ export function executeCampaignAction(
   cards: CardDefinition[]
 ): CampaignRunState {
   const availableIds = run.availableCampaignActionIds ?? (campaign.actions || []).map((entry) => entry.id);
-  if (!availableIds.includes(action.id) || !meetsCampaignPreconditions(run, action.preconditions)) return run;
+  if (!availableIds.includes(action.id) || !meetsCampaignPreconditions(run, action.unlockPreconditions) || !meetsCampaignPreconditions(run, action.preconditions)) return run;
   const effects = action.effects.filter((effect) => effect.type !== 'go_to_node' || Boolean(campaign.nodes[effect.nodeId]));
   const previousNodeId = run.currentNodeId;
   let updated = applyCampaignEffects(run, effects, cards);

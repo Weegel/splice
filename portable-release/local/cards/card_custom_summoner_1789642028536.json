@@ -1,0 +1,24 @@
+{
+  "id": "custom_summoner_1789642028536",
+  "name": "Testsummoner",
+  "splinter": "Fire",
+  "cardType": "Summoner",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "A newly forged PvE battle entity.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 3,
+      "attack": 0,
+      "attackType": "None",
+      "speed": 0,
+      "armor": 0,
+      "health": 0,
+      "abilities": []
+    }
+  ],
+  "summonerBuffs": {
+    "melee": 1
+  }
+}

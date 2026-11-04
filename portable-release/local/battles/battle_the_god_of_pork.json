@@ -1,0 +1,85 @@
+{
+  "id": "pve_custom_1792484598313",
+  "name": "The god of pork",
+  "description": "A newly designed combat challenge for aspiring champions.",
+  "manaCap": 25,
+  "rulesets": [
+    "Noxious Fumes"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": null,
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "mon_fire_pig_servant(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_fire_pig_servant(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_fire_pig_servant(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_life_god_of_pork(1)",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "mon_fire_pig_servant(1)",
+      "name": "Pig servant",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "A lowly pig servant who's only purpose is to feed the god of pork.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 5,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 1,
+          "health": 4,
+          "abilities": []
+        }
+      ]
+    },
+    {
+      "id": "mon_life_god_of_pork(1)",
+      "name": "God of pork",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Legendary",
+      "isCustom": true,
+      "description": "An incredibly fat pig. It seems the other pigs are worshiping it as a deity, the god of pork.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 10,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 12,
+          "abilities": []
+        }
+      ]
+    }
+  ]
+}

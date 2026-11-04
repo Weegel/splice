@@ -1,0 +1,21 @@
+{
+  "id": "mon_neutral_firewood_basket(1)",
+  "name": "Firewood basket",
+  "splinter": "Neutral",
+  "cardType": "Monster",
+  "rarity": "Common",
+  "isCustom": true,
+  "description": "A large basket full of firewood. Why summoners insist on summoning wood for a fire instead of fire or warmth is a mystery to all but the summoners.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 2,
+      "attack": 0,
+      "attackType": "None",
+      "speed": 1,
+      "armor": 1,
+      "health": 3,
+      "abilities": []
+    }
+  ]
+}

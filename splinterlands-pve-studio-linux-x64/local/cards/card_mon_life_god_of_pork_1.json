@@ -1,0 +1,25 @@
+{
+  "id": "mon_life_god_of_pork(1)",
+  "name": "God of pork",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Legendary",
+  "isCustom": true,
+  "description": "An incredibly fat pig. It seems the other pigs are worshiping it as a deity, the god of pork.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 10,
+      "attack": 0,
+      "attackType": "None",
+      "speed": 1,
+      "armor": 0,
+      "health": 10,
+      "abilities": [
+        "Immunity",
+        "Scavenger",
+        "Untrainable"
+      ]
+    }
+  ]
+}

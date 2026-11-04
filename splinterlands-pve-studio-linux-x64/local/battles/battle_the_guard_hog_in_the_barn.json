@@ -1,0 +1,54 @@
+{
+  "id": "pve_custom_1793013537839",
+  "name": "The guard hog in the barn",
+  "description": "This barn is guarded by a guard hog. Yes, not a dog.",
+  "manaCap": 25,
+  "rulesets": [
+    "Standard"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": null,
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "mon_life_guard_hog(1)",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "mon_life_guard_hog(1)",
+      "name": "Guard hog",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "You heard before of a pig that thinks its a dog. This one however is not so much interested in herding sheep as in ripping your throat out.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 6,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 1,
+          "health": 5,
+          "abilities": [
+            "Enrage"
+          ]
+        }
+      ]
+    }
+  ]
+}

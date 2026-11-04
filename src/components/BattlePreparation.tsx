@@ -174,9 +174,12 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
     effectiveSummoners[0]?.id || ''
   );
   const [summonerLevel, setSummonerLevel] = useState<number>(1);
+  const [selectedSummonerOptionId, setSelectedSummonerOptionId] = useState<string>('');
+  const [selectedSummonerOptionTargets, setSelectedSummonerOptionTargets] = useState<string[]>([]);
 
   // Player selected monsters
   const [selectedMonsters, setSelectedMonsters] = useState<{ cardId: string; level: number }[]>([]);
+  const [conscriptedCardId, setConscriptedCardId] = useState<string | null>(null);
 
   // Synchronize summoner ID if current one becomes invalid or unavailable
   useEffect(() => {
@@ -190,6 +193,26 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
 
   // Active filter for monster picker
   const selectedSummoner = cards.find((c) => c.id === selectedSummonerId);
+  const selectedSummonerOption = selectedSummoner?.summonerOptions?.find((option) => option.id === selectedSummonerOptionId);
+  const summonerOptionTargetLimit = Math.max(1, selectedSummonerOption?.max || 1);
+  const enemySummoner = cards.find((c) => c.id === challenge.enemyTeam.summonerId);
+  const enemyHasForceReduction = [
+    ...(enemySummoner ? [enemySummoner.stats.find((stat) => stat.level === challenge.enemyTeam.summonerLevel) || enemySummoner.stats[0]] : []),
+    ...challenge.enemyTeam.monsters.map((selection) => {
+      const card = cards.find((candidate) => candidate.id === selection.cardId);
+      return card?.stats.find((stat) => stat.level === selection.level) || card?.stats[0];
+    }),
+  ].some((stat) => stat?.abilities.includes('Force Reduction'));
+  const selectedSummonerStats = selectedSummoner?.stats.find((stat) => stat.level === summonerLevel) || selectedSummoner?.stats[0];
+  const hasConscript = Boolean(selectedSummonerStats?.abilities.includes('Conscript'));
+  const baseTeamSize = enemyHasForceReduction ? 5 : 6;
+  const hasValidConscriptedCard = Boolean(hasConscript && conscriptedCardId && selectedMonsters.some((selection) => selection.cardId === conscriptedCardId) && cards.find((card) => card.id === conscriptedCardId)?.isGladiator);
+  const maxTeamSize = baseTeamSize + (hasValidConscriptedCard ? 1 : 0);
+  const getTeamLimitWithCard = (card: CardDefinition) => selectedMonsters.length < baseTeamSize
+    ? baseTeamSize
+    : selectedMonsters.length === baseTeamSize && hasConscript && card.isGladiator
+      ? baseTeamSize + 1
+      : baseTeamSize;
   const activeSplinter: Splinter = selectedSummoner?.splinter || 'Fire';
 
   // For Dragon Summoners: Allowed non-Dragon elements for the secondary element
@@ -338,6 +361,8 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
     if (!newSumm) return;
     
     setSelectedSummonerId(newSummonerId);
+    setSelectedSummonerOptionId('');
+    setSelectedSummonerOptionTargets([]);
     const maxLvl = getCardOwnership(newSumm).maxLevel;
     setSummonerLevel((prev) => Math.min(prev, maxLvl));
 
@@ -347,7 +372,12 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
       const card = cards.find((c) => c.id === m.cardId);
       return card ? isCardAllowedByRulesets(card, newSplinter, dragonSecondarySplinter).allowed : false;
     });
-    setSelectedMonsters(filteredMonsters);
+    const newSummonerStats = newSumm.stats.find((stat) => stat.level === summonerLevel) || newSumm.stats[0];
+    const canKeepConscriptedSlot = newSummonerStats?.abilities.includes('Conscript')
+      && conscriptedCardId
+      && filteredMonsters.some((monster) => monster.cardId === conscriptedCardId && cards.find((card) => card.id === monster.cardId)?.isGladiator);
+    setSelectedMonsters(canKeepConscriptedSlot ? filteredMonsters : filteredMonsters.slice(0, baseTeamSize));
+    if (!canKeepConscriptedSlot) setConscriptedCardId(null);
     setIsSummonerModalOpen(false);
   };
 
@@ -398,15 +428,42 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
     });
 
   const handleAddMonster = (card: CardDefinition) => {
-    if (selectedMonsters.length >= 6) return;
+    if (selectedMonsters.length >= getTeamLimitWithCard(card)) return;
     if (selectedMonsters.some((m) => m.cardId === card.id)) return; // 1 of each card in team
     const ownership = getCardOwnership(card);
     const initialLevel = Math.min(1, ownership.maxLevel);
     setSelectedMonsters([...selectedMonsters, { cardId: card.id, level: initialLevel }]);
+    if (selectedMonsters.length === baseTeamSize && hasConscript && card.isGladiator) setConscriptedCardId(card.id);
+  };
+
+  const selectableSummonerOptionTargets = selectedSummonerOption?.targetType === 'unit'
+    ? [
+        ...(selectedSummonerOption.target !== 'opponent' ? selectedMonsters.map((selection) => ({
+          key: `1:${selection.cardId}`,
+          label: cards.find((card) => card.id === selection.cardId)?.name || selection.cardId,
+          side: 'Your team',
+        })) : []),
+        ...(selectedSummonerOption.target !== 'team' ? challenge.enemyTeam.monsters.map((selection, index) => ({
+          key: `2:${index}`,
+          label: cards.find((card) => card.id === selection.cardId)?.name || selection.cardId,
+          side: 'Opponent',
+        })) : []),
+      ]
+    : [];
+
+  const toggleSummonerOptionTarget = (targetKey: string) => {
+    setSelectedSummonerOptionTargets((current) => {
+      if (current.includes(targetKey)) return current.filter((key) => key !== targetKey);
+      if (current.length >= summonerOptionTargetLimit) return current;
+      return [...current, targetKey];
+    });
   };
 
   const handleRemoveMonster = (index: number) => {
+    const removed = selectedMonsters[index];
     setSelectedMonsters(selectedMonsters.filter((_, idx) => idx !== index));
+    if (removed) setSelectedSummonerOptionTargets((current) => current.filter((target) => target !== `1:${removed.cardId}`));
+    if (removed?.cardId === conscriptedCardId) setConscriptedCardId(null);
   };
 
   const moveMonster = (from: number, to: number) => {
@@ -426,6 +483,14 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
       alert('You must select at least 1 monster for your team.');
       return;
     }
+    if (selectedMonsters.length > maxTeamSize) {
+      alert(`Your summoner and battle rules limit your team to ${maxTeamSize} monsters. Conscript's extra slot must be a Gladiator.`);
+      return;
+    }
+    if (selectedSummonerOption?.targetType === 'unit' && selectedSummonerOptionTargets.length === 0) {
+      alert('Select at least one unit for the summoner option.');
+      return;
+    }
     if (isManaOver) {
       alert(`${campaignMana ? 'Not enough campaign mana' : 'Mana limit exceeded'}! You have used ${totalManaUsed}/${challenge.manaCap} mana.`);
       return;
@@ -434,13 +499,13 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
     const playerTeam: TeamSelection = {
       summonerId: selectedSummonerId,
       summonerLevel,
+      summonerOptionId: selectedSummonerOption?.id,
+      summonerOptionTargets: selectedSummonerOptionTargets,
       monsters: selectedMonsters,
     };
 
     onLaunchBattle(playerTeam);
   };
-
-  const enemySummoner = cards.find((c) => c.id === challenge.enemyTeam.summonerId);
 
   return (
     <div className="space-y-6">
@@ -521,7 +586,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <h3 className="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
                 <Swords className="w-4 h-4" />
-                Your Battle Lineup ({selectedMonsters.length}/6 Monsters)
+                Your Battle Lineup ({selectedMonsters.length}/{maxTeamSize} Monsters)
               </h3>
               <button
                 onClick={() => setSelectedMonsters([])}
@@ -613,6 +678,53 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
             {effectiveSummoners.length === 0 && (
               <div className="px-3 py-2 bg-rose-950/60 border border-rose-600/60 rounded-xl text-xs text-rose-300 font-semibold">
                 No summoners in your collection match this campaign&apos;s allowed editions and splinter rules. Adjust the campaign restrictions or resync your account.
+              </div>
+            )}
+
+            {(selectedSummoner?.summonerOptions?.length || 0) > 0 && (
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <label htmlFor="summoner-option" className="block text-xs font-bold text-slate-300">Summoner Option</label>
+                <select
+                  id="summoner-option"
+                  value={selectedSummonerOptionId}
+                  onChange={(event) => {
+                    setSelectedSummonerOptionId(event.target.value);
+                    setSelectedSummonerOptionTargets([]);
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="">No option</option>
+                  {selectedSummoner?.summonerOptions?.map((option) => (
+                    <option key={option.id} value={option.id}>{option.name}</option>
+                  ))}
+                </select>
+                {selectedSummonerOption && (
+                  <>
+                    {selectedSummonerOption.description && (
+                      <p className="text-xs text-slate-400">{selectedSummonerOption.description}</p>
+                    )}
+                    {selectedSummonerOption.targetType === 'unit' && (
+                      <div className="space-y-1.5">
+                        <div className="text-[11px] text-slate-400">Targets: {selectedSummonerOptionTargets.length}/{summonerOptionTargetLimit}</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {selectableSummonerOptionTargets.map((target) => (
+                            <label key={target.key} className="flex items-center gap-2 min-w-0 px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-md text-xs text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedSummonerOptionTargets.includes(target.key)}
+                                disabled={!selectedSummonerOptionTargets.includes(target.key) && selectedSummonerOptionTargets.length >= summonerOptionTargetLimit}
+                                onChange={() => toggleSummonerOptionTarget(target.key)}
+                                className="accent-amber-500"
+                              />
+                              <span className="text-slate-500 shrink-0">{target.side}</span>
+                              <span className="truncate">{target.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -735,7 +847,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
                 </div>
               ) : (
                 <div className="text-xs text-slate-400 font-semibold">
-                  Team: <strong className="text-slate-200">{selectedMonsters.length}/6 Monsters</strong>
+                  Team: <strong className="text-slate-200">{selectedMonsters.length}/{maxTeamSize} Monsters</strong>
                 </div>
               )}
 
@@ -919,7 +1031,7 @@ export const BattlePreparation: React.FC<BattlePreparationProps> = ({
                       level={ownership.maxLevel}
                       compact
                       selected={isSelected}
-                      disabled={isSelected || selectedMonsters.length >= 6}
+                      disabled={isSelected || selectedMonsters.length >= getTeamLimitWithCard(card)}
                       onClick={() => handleAddMonster(card)}
                       showCustomBadge={false}
                     />

@@ -1,0 +1,23 @@
+{
+  "id": "mon_life_guard_hog(1)",
+  "name": "Guard hog",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "You heard before of a pig that thinks its a dog. This one however is not so much interested in herding sheep as in ripping your throat out.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 6,
+      "attack": 2,
+      "attackType": "Melee",
+      "speed": 3,
+      "armor": 1,
+      "health": 5,
+      "abilities": [
+        "Enrage"
+      ]
+    }
+  ]
+}

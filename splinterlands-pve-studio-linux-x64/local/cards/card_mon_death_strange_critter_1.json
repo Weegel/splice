@@ -1,0 +1,23 @@
+{
+  "id": "mon_death_strange_critter(1)",
+  "name": "Strange critter",
+  "splinter": "Death",
+  "cardType": "Monster",
+  "rarity": "Common",
+  "isCustom": true,
+  "description": "A newly forged PvE battle entity.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 3,
+      "attack": 1,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 2,
+      "abilities": [
+        "Charge"
+      ]
+    }
+  ]
+}

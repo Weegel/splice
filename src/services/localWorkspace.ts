@@ -1,6 +1,6 @@
 import { CardDefinition } from '../types/card';
 import { PvEChallenge, BattleLog } from '../types/battle';
-import { CampaignDefinition } from '../types/campaign';
+import { CampaignDefinition, CampaignRunState } from '../types/campaign';
 import { LocalPlayerProfile } from '../types/profile';
 
 interface DirectoryPickerWindow extends Window {
@@ -14,6 +14,7 @@ const HANDLE_KEY = 'local-folder';
 export class LocalWorkspaceService {
   private static cachedHandle: FileSystemDirectoryHandle | null = null;
   private static lastError: string | null = null;
+  private static campaignRunWrite: Promise<boolean> = Promise.resolve(true);
 
   static getLastError(): string | null {
     return this.lastError;
@@ -30,14 +31,34 @@ export class LocalWorkspaceService {
     battleLogs: BattleLog[];
     profiles: LocalPlayerProfile[] | null;
     activeProfileId: string | null;
+    campaignRuns: Record<string, CampaignRunState> | null;
   }> {
     try {
       const response = await fetch('/__local_workspace_load');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch {
-      return { cards: [], challenges: [], campaigns: [], battleLogs: [], profiles: null, activeProfileId: null };
+      return { cards: [], challenges: [], campaigns: [], battleLogs: [], profiles: null, activeProfileId: null, campaignRuns: null };
     }
+  }
+
+  static writeCampaignRuns(runs: Record<string, CampaignRunState>): Promise<boolean> {
+    const body = JSON.stringify({ runs });
+    this.campaignRunWrite = this.campaignRunWrite.then(async () => {
+      try {
+        const response = await fetch('/__local_campaign_runs_save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return true;
+      } catch (error) {
+        console.error('Could not save campaign progress to disk', error);
+        return false;
+      }
+    });
+    return this.campaignRunWrite;
   }
 
   static async writeProfiles(profiles: LocalPlayerProfile[], activeProfileId: string | null): Promise<boolean> {

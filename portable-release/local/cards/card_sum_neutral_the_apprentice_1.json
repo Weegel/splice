@@ -1,0 +1,24 @@
+{
+  "id": "sum_neutral_the_apprentice(1)",
+  "name": "The apprentice",
+  "splinter": "Neutral",
+  "cardType": "Summoner",
+  "rarity": "Common",
+  "isCustom": true,
+  "description": "The apprentice seeks knowledge, power and wisdom, but lacks all it.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 0,
+      "attack": 0,
+      "attackType": "None",
+      "speed": 0,
+      "armor": 0,
+      "health": 0,
+      "abilities": []
+    }
+  ],
+  "summonerBuffs": {
+    "melee": 0
+  }
+}

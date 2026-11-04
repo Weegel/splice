@@ -1,0 +1,21 @@
+{
+  "id": "mon_life_burn_scarred_pig(1)",
+  "name": "Burn-scarred pig",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "These pigs show lots of scars and burns. And smell of bacon",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 4,
+      "attack": 2,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 3,
+      "abilities": []
+    }
+  ]
+}

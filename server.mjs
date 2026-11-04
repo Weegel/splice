@@ -10,6 +10,7 @@ const localRoot = path.join(root, 'local');
 const preferredPort = Number(process.env.PORT || 5173);
 const cardCatalogPath = path.join(localRoot, 'all_cards.json');
 const profilesPath = path.join(localRoot, 'profiles.json');
+const campaignRunsPath = path.join(localRoot, 'campaign_runs.json');
 const cardApiEndpoints = ['https://api2.splinterlands.com/cards/get_details', 'https://api.splinterlands.io/cards/get_details', 'https://api.splinterlands.com/cards/get_details'];
 const resolvedDistRoot = path.resolve(distRoot);
 
@@ -128,7 +129,7 @@ async function loadOrCreateCardCatalog() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const cards = await response.json();
       if (!Array.isArray(cards) || cards.length === 0) throw new Error('Card API returned no cards');
-      const snapshot = cards.map(({ id, name, color, type, rarity, stats }) => ({ id, name, color, type, rarity, stats }));
+      const snapshot = cards.map(({ id, name, color, type, sub_type, is_gladiator, rarity, stats }) => ({ id, name, color, type, sub_type, is_gladiator, rarity, stats }));
       await fs.mkdir(localRoot, { recursive: true });
       await fs.writeFile(cardCatalogPath, JSON.stringify(snapshot), 'utf8');
       return snapshot;
@@ -162,7 +163,25 @@ const server = http.createServer(async (req, res) => {
       } catch (error) {
         if (error.code !== 'ENOENT') console.warn('Could not load local/profiles.json', error.message);
       }
-      sendJson(res, 200, { cards, campaigns, challenges: battles.filter((item) => item?.enemyTeam), battleLogs: battles.filter((item) => item?.events), ...profileState });
+      let campaignRuns = null;
+      try {
+        const parsed = JSON.parse((await fs.readFile(campaignRunsPath, 'utf8')).replace(/^\uFEFF/, ''));
+        if (parsed.runs && typeof parsed.runs === 'object' && !Array.isArray(parsed.runs)) campaignRuns = parsed.runs;
+      } catch (error) {
+        if (error.code !== 'ENOENT') console.warn('Could not load local/campaign_runs.json', error.message);
+      }
+      sendJson(res, 200, { cards, campaigns, challenges: battles.filter((item) => item?.enemyTeam), battleLogs: battles.filter((item) => item?.events), ...profileState, campaignRuns });
+      return;
+    }
+    if (req.url === '/__local_campaign_runs_save') {
+      if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }); res.end('Method Not Allowed'); return; }
+      const payload = await readJsonBody(req);
+      if (!payload.runs || typeof payload.runs !== 'object' || Array.isArray(payload.runs)) throw new Error('Invalid campaign runs payload');
+      await fs.mkdir(localRoot, { recursive: true });
+      const temporaryPath = `${campaignRunsPath}.tmp`;
+      await fs.writeFile(temporaryPath, JSON.stringify({ runs: payload.runs }, null, 2), 'utf8');
+      await fs.rename(temporaryPath, campaignRunsPath);
+      sendJson(res, 200, { ok: true });
       return;
     }
     if (req.url === '/__local_profiles_save' && req.method === 'POST') {

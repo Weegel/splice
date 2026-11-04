@@ -1,0 +1,21 @@
+{
+  "id": "mon_life_pig_guard(1)",
+  "name": "Pig guard",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "A simple pig guard. These pigs are fine with being a meat shield for the more important pigs.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 5,
+      "attack": 2,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 4,
+      "abilities": []
+    }
+  ]
+}

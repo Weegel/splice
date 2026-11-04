@@ -8,14 +8,15 @@ interface CampaignPreconditionsEditorProps {
   unlocks: CampaignUnlockDefinition[];
   cards: CardDefinition[];
   items: CampaignItemDefinition[];
+  title?: string;
   onChange: (preconditions: CampaignPrecondition[]) => void;
 }
 
-export function CampaignPreconditionsEditor({ preconditions, unlocks, cards, items, onChange }: CampaignPreconditionsEditorProps) {
+export function CampaignPreconditionsEditor({ preconditions, unlocks, cards, items, title = 'Preconditions', onChange }: CampaignPreconditionsEditorProps) {
   const updatePrecondition = (updated: CampaignPrecondition) => onChange(preconditions.map((entry) => entry.id === updated.id ? updated : entry));
   return (
     <fieldset className="min-w-0 space-y-2 border-t border-slate-800 pt-3">
-      <legend className="text-xs font-semibold text-slate-400">Preconditions</legend>
+      <legend className="text-xs font-semibold text-slate-400">{title}</legend>
       {preconditions.map((precondition, index) => (
         <div key={precondition.id} className="flex items-end gap-2">
           <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
@@ -28,6 +29,8 @@ export function CampaignPreconditionsEditor({ preconditions, unlocks, cards, ite
                     updatePrecondition({ id: precondition.id, type, unlockId: 'unlockId' in precondition ? precondition.unlockId : '' });
                   } else if (type === 'has_item') {
                     updatePrecondition({ id: precondition.id, type, item: 'item' in precondition ? precondition.item : '', quantity: 'quantity' in precondition ? precondition.quantity : 0 });
+                  } else if (type === 'has_mana') {
+                    updatePrecondition({ id: precondition.id, type, mana: 'mana' in precondition ? precondition.mana : 0 });
                   } else {
                     updatePrecondition({ id: precondition.id, type, cardId: 'cardId' in precondition ? precondition.cardId : '' });
                   }
@@ -38,6 +41,7 @@ export function CampaignPreconditionsEditor({ preconditions, unlocks, cards, ite
                 <option value="card_unlocked">Card unlocked</option>
                 <option value="card_not_unlocked">Card not unlocked</option>
                 <option value="has_item">Has Item</option>
+                <option value="has_mana">Has mana</option>
               </select>
             </label>
             {precondition.type === 'has_unlock' || precondition.type === 'has_not_unlock' ? (
@@ -50,6 +54,13 @@ export function CampaignPreconditionsEditor({ preconditions, unlocks, cards, ite
                   {precondition.unlockId && !unlocks.some((unlock) => unlock.id === precondition.unlockId) && <option value={precondition.unlockId} disabled>{precondition.unlockId} (Unavailable)</option>}
                   {unlocks.map((unlock) => <option key={unlock.id} value={unlock.id}>{unlock.name}</option>)}
                 </select>
+              </label>
+            ) : precondition.type === 'has_mana' ? (
+              <label className="min-w-0 text-xs text-slate-400">
+                Minimum mana
+                <input type="number" min="0" step="1" value={precondition.mana} aria-label={`Precondition ${index + 1} minimum mana`}
+                  onChange={(event) => updatePrecondition({ ...precondition, mana: Math.max(0, Math.floor(Number(event.target.value) || 0)) })}
+                  className="mt-1 w-full min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200" />
               </label>
             ) : precondition.type === 'has_item' ? (
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_5rem] gap-2">

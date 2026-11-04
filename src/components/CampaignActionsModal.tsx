@@ -22,6 +22,7 @@ export function CampaignActionsModal({ actions, nodes, cards, items, unlocks, au
   const [draft, setDraft] = useState(() => ({
     name: selected?.name || '',
     description: selected?.description || '',
+    unlockPreconditions: selected?.unlockPreconditions || [],
     preconditions: selected?.preconditions || [],
     effects: selected?.effects || [],
   }));
@@ -29,7 +30,7 @@ export function CampaignActionsModal({ actions, nodes, cards, items, unlocks, au
 
   const selectAction = (action?: CampaignActionDefinition) => {
     setSelectedId(action?.id || null);
-    setDraft({ name: action?.name || '', description: action?.description || '', preconditions: action?.preconditions || [], effects: action?.effects || [] });
+    setDraft({ name: action?.name || '', description: action?.description || '', unlockPreconditions: action?.unlockPreconditions || [], preconditions: action?.preconditions || [], effects: action?.effects || [] });
     setError('');
   };
 
@@ -46,6 +47,7 @@ export function CampaignActionsModal({ actions, nodes, cards, items, unlocks, au
       id: selectedId || `campaign_action_${crypto.randomUUID()}`,
       name,
       description: next.description.trim() || undefined,
+      unlockPreconditions: next.unlockPreconditions,
       preconditions: next.preconditions,
       effects: next.effects,
     };
@@ -60,6 +62,7 @@ export function CampaignActionsModal({ actions, nodes, cards, items, unlocks, au
     const action: CampaignActionDefinition = {
       id: `campaign_action_${crypto.randomUUID()}`,
       name,
+      unlockPreconditions: [],
       preconditions: [],
       effects: [],
     };
@@ -82,7 +85,7 @@ export function CampaignActionsModal({ actions, nodes, cards, items, unlocks, au
         <header className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 id="campaign-actions-title" className="text-sm font-bold text-amber-300">Campaign Actions ({actions.length})</h3>
-            <p className="text-xs text-slate-500">Actions become usable when their preconditions are met.</p>
+            <p className="text-xs text-slate-500">Unlock preconditions control visibility; use preconditions control when an action can be used.</p>
           </div>
           <button type="button" autoFocus title="Close campaign actions" aria-label="Close campaign actions" onClick={onClose}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800"><X className="h-4 w-4" /></button>
@@ -111,7 +114,9 @@ export function CampaignActionsModal({ actions, nodes, cards, items, unlocks, au
                 <textarea rows={2} value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })}
                   className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100" />
               </label>
-              <CampaignPreconditionsEditor preconditions={draft.preconditions} unlocks={unlocks} cards={cards} items={items}
+              <CampaignPreconditionsEditor title="Unlock Preconditions" preconditions={draft.unlockPreconditions} unlocks={unlocks} cards={cards} items={items}
+                onChange={(unlockPreconditions: CampaignPrecondition[]) => updateDraft({ unlockPreconditions })} />
+              <CampaignPreconditionsEditor title="Use Preconditions" preconditions={draft.preconditions} unlocks={unlocks} cards={cards} items={items}
                 onChange={(preconditions: CampaignPrecondition[]) => updateDraft({ preconditions })} />
               <section className="space-y-2 border-t border-slate-800 pt-3">
                 <h5 className="text-xs font-bold text-amber-300">Action Effects</h5>

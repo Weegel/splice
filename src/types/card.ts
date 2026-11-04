@@ -62,7 +62,92 @@ export type Ability =
   | 'Immunity'
   | 'Scavenger'
   | 'Untrainable'
-  | 'Weapons Training';
+  | 'Weapons Training'
+  | 'Amplify'
+  | 'Apex Strike'
+  | 'Armored Strike'
+  | 'Backfire'
+  | 'Blasphemy of Uul'
+  | 'Blind'
+  | 'Bloodline Dominion'
+  | 'Bloodline Pact'
+  | 'Bloodline Tribute'
+  | 'Bloodlust'
+  | 'Bulwark'
+  | 'Cleanse Rearguard'
+  | 'Conscript'
+  | 'Corrosive Ward'
+  | 'Corrupted Healing'
+  | 'Deathblow'
+  | 'Decoy'
+  | 'Deflect'
+  | 'Deflection Shroud'
+  | 'Determined'
+  | 'Echo'
+  | 'Electrified'
+  | 'Empower'
+  | 'Enfeeble'
+  | 'Execute'
+  | 'Expose'
+  | 'Final Rest'
+  | 'Flame Fed'
+  | 'Flank'
+  | 'Focus'
+  | 'Force Reduction'
+  | 'Forcefield'
+  | 'Giant Killer'
+  | 'Impede'
+  | 'Incendiary'
+  | 'Invigorate'
+  | 'Kindred Spirit'
+  | 'Kindred Will'
+  | 'Kindred Spirit:Blast'
+  | 'Kindred Spirit:Execute'
+  | 'Kindred Spirit:Giant Killer'
+  | 'Kindred Spirit:Poison'
+  | 'Kindred Spirit:Relentless Strike'
+  | 'Kindred Spirit:Strengthen'
+  | 'Kindred Spirit:Stun'
+  | 'Kindred Spirit:True Strike'
+  | 'Kindred Will:Ambush'
+  | 'Kindred Will:Armored Strike'
+  | 'Kindred Will:Deflection Shroud'
+  | 'Kindred Will:Life Leech'
+  | 'Kindred Will:Mimic'
+  | 'Kindred Will:Rebirth'
+  | 'Kindred Will:Shatter'
+  | 'Kindred Will:Triage'
+  | 'Last Stand'
+  | 'Last Word'
+  | 'Lookout'
+  | 'Martyr'
+  | 'Mimic'
+  | 'Oppress'
+  | 'Painforge'
+  | 'Phase Ward'
+  | 'Pinpoint'
+  | 'Poison Burst'
+  | 'Rebirth'
+  | 'Recharge'
+  | 'Reckless'
+  | 'Redemption'
+  | 'Reflexes'
+  | 'Relentless Strike'
+  | 'Repair'
+  | 'Reprisal'
+  | 'Resurgence'
+  | 'Reveal'
+  | 'Scattershot'
+  | 'Shadow Focus'
+  | 'Shapeshift'
+  | 'Shield Ward'
+  | 'Snare'
+  | 'Soul Siphon'
+  | 'Spite'
+  | 'Stray Shot'
+  | 'Volley of Arrows'
+  | 'Weary'
+  | 'Wingbreak';
 
 export interface CardStatLevel {
   level: number;
@@ -91,6 +176,25 @@ export interface SummonerBuffs {
   abilitiesGranted?: Ability[];
 }
 
+export interface CardRacialSynergy {
+  race: string;
+  abilities?: Ability[];
+  statBuff?: number[];
+}
+
+export interface SummonerOption {
+  id: string;
+  name: string;
+  description?: string;
+  effect?: string;
+  statBuff?: number[];
+  abilities?: Ability[];
+  statusEffects?: string[];
+  target?: string;
+  targetType?: string;
+  max?: number;
+}
+
 export interface CardDefinition {
   id: string;
   name: string;
@@ -98,7 +202,11 @@ export interface CardDefinition {
   cardType: CardType;
   rarity: Rarity;
   stats: CardStatLevel[];
+  isGladiator?: boolean;
   summonerBuffs?: SummonerBuffs;
+  bloodline?: string;
+  racialSynergy?: CardRacialSynergy[];
+  summonerOptions?: SummonerOption[];
   imageUrl?: string;
   description?: string;
   isCustom?: boolean;

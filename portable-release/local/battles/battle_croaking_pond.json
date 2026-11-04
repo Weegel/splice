@@ -1,0 +1,58 @@
+{
+  "id": "pve_custom_1791883393461",
+  "name": "Croaking pond",
+  "description": "A loud croaking sound and a foul smell originate from this pond.",
+  "manaCap": 12,
+  "rulesets": [
+    "Standard"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": null,
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "mon_water_smelly_toad(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_water_smelly_toad(1)",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "mon_water_smelly_toad(1)",
+      "name": "Smelly toad",
+      "splinter": "Water",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Reach"
+          ]
+        }
+      ]
+    }
+  ]
+}

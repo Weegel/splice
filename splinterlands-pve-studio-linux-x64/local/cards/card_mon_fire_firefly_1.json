@@ -1,0 +1,24 @@
+{
+  "id": "mon_fire_firefly(1)",
+  "name": "Firefly swarm",
+  "splinter": "Fire",
+  "cardType": "Monster",
+  "rarity": "Common",
+  "isCustom": true,
+  "description": "A swarm of tiny fireflies.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 3,
+      "attack": 2,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 1,
+      "abilities": [
+        "Reach",
+        "Flying"
+      ]
+    }
+  ]
+}

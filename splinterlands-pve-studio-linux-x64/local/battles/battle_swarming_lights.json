@@ -1,0 +1,58 @@
+{
+  "id": "pve_custom_1791884773037",
+  "name": "Swarming lights",
+  "description": "Strange small lights swarm from a nearby tree towards you.",
+  "manaCap": 12,
+  "rulesets": [
+    "Standard"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": null,
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "mon_fire_firefly(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_fire_firefly(1)",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "mon_fire_firefly(1)",
+      "name": "Firefly",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Reach"
+          ]
+        }
+      ]
+    }
+  ]
+}

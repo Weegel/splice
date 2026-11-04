@@ -1,0 +1,21 @@
+{
+  "id": "custom_monster_1789641897615",
+  "name": "now it works",
+  "splinter": "Fire",
+  "cardType": "Monster",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "A newly forged PvE battle entity.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 4,
+      "attack": 12,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 1,
+      "health": 5,
+      "abilities": []
+    }
+  ]
+}

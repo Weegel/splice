@@ -1,0 +1,3918 @@
+{
+  "id": "campaign_splintered_paths_of_emor",
+  "name": "The splintered paths of Emor",
+  "description": "An experiment going wrong sent a young apprentice to a strange crossroad",
+  "difficulty": "Silver",
+  "author": "Custom Creator",
+  "isCustom": true,
+  "collectionSource": "custom",
+  "startingCollection": [
+    {
+      "cardId": "sum_neutral_the_apprentice(1)",
+      "maxLevel": 1
+    },
+    {
+      "cardId": "mon_neutral_magic_bucket(1)",
+      "maxLevel": 1
+    },
+    {
+      "cardId": "mon_neutral_magic_broom(1)",
+      "maxLevel": 1
+    },
+    {
+      "cardId": "mon_neutral_firewood_basket(1)",
+      "maxLevel": 1
+    }
+  ],
+  "allowedTiers": [
+    null,
+    4,
+    7,
+    12,
+    14
+  ],
+  "allowGladiators": true,
+  "allowRuni": true,
+  "maxCardLevelsByRarity": {
+    "Common": 10,
+    "Rare": 8,
+    "Epic": 6,
+    "Legendary": 4
+  },
+  "startNodeId": "node_apprentice_workshop_experiment",
+  "nodes": {
+    "node_apprentice_workshop_experiment": {
+      "id": "node_apprentice_workshop_experiment",
+      "type": "text",
+      "title": "The experiment",
+      "speakerName": "Narrator",
+      "content": "Was it a lapse in concentration, hubris or tapping into forbidden knowledged? No, it was misplaced trust. Sometimes all it takes to create a catastrophy is a successful attempt to hide ones failure. Replacing a spilled ingredient with another in the hope the master doesn't notice led to the fabric of reality being torn apart. Before the master could close the rift, the apprentice paid for his failure.",
+      "buttonText": "Get up",
+      "nextNodeId": "node_emor_arrival_strange_place"
+    },
+    "node_emor_arrival_strange_place": {
+      "id": "node_emor_arrival_strange_place",
+      "type": "text",
+      "title": "A strange place",
+      "speakerName": "The apprentice",
+      "content": "What happened? I... I should have... am I... where am I? What is this place?",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_arrival_guiding_voice"
+    },
+    "node_emor_arrival_guiding_voice": {
+      "id": "node_emor_arrival_guiding_voice",
+      "type": "text",
+      "title": "The Emor",
+      "speakerName": "Guiding voice",
+      "content": "This is the Emor. The place all paths splinter from into the domains of the universe. Why did you enter Emor, summoner?",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_arrival_apprentice"
+    },
+    "node_emor_arrival_apprentice": {
+      "id": "node_emor_arrival_apprentice",
+      "type": "text",
+      "title": "Summoner",
+      "speakerName": "The apprentice",
+      "content": "Emor? Summoner? I am hardly a summoner. I am just an apprentice. I have to return to my master, ask for forgivness and make amends.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_paths_explanation"
+    },
+    "node_emor_paths_explanation": {
+      "id": "node_emor_paths_explanation",
+      "type": "text",
+      "title": "Paths of emor",
+      "speakerName": "Guiding voice",
+      "content": "A simple apprentice? Hmm. Well, here is some knowledge you might not have sought, but you will need.\n\nAs I said, you are in Emor, where all paths splinter from. There are untold paths leading towards one domain or another but dangers lurks on all of them. These dangers were created from the imagination of those who wield and twist mana to create and summon everything from mundane creatures to outright horrors. Eventually this mana returns here but often still tainted with by the realm it was summoned to. This creates the creatures haunting the paths of Emor. ",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_mana_explanation"
+    },
+    "node_emor_mana_explanation": {
+      "id": "node_emor_mana_explanation",
+      "type": "text",
+      "title": "Mana",
+      "speakerName": "Guiding voice",
+      "content": "While your native realm limits the amount of mana spent in a summoning, here you can freely use all the mana you possess to summon creatures. But beware, once the creature you summoned is defeated the mana will be freed from your control. However, you can harness the mana of the creatures you defeat.\n\nEmor will restore a limited amount of mana everytime you enter, but if you want more you will have to fight for it.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_mana_apprentice_question"
+    },
+    "node_emor_mana_apprentice_question": {
+      "id": "node_emor_mana_apprentice_question",
+      "type": "text",
+      "title": "The fight for mana",
+      "speakerName": "The apprentice",
+      "content": "I think I understand, so mana is a currency in this realm, the more I have the more powerful creatures I can summon, but I shouldn't use more mana than I can harness from the creatures I defeat.\n\nThere is just one problem, I have no mana.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_mana_spring_directions"
+    },
+    "node_emor_mana_spring_directions": {
+      "id": "node_emor_mana_spring_directions",
+      "type": "text",
+      "title": "There is a mana spring",
+      "speakerName": "Guiding voice",
+      "content": "There is a mana spring nearby. It is just a small spring, but it will provide you with enough mana to start on one of the many paths. It is right over there. Go there and let the mana flow into you.",
+      "buttonText": "Go to the mana spring",
+      "nextNodeId": "node_emor_mana_spring_discovery"
+    },
+    "node_emor_mana_spring_discovery": {
+      "id": "node_emor_mana_spring_discovery",
+      "type": "text",
+      "title": "Discovering the mana spring",
+      "speakerName": "Narrator",
+      "content": "You walk towards the small spring where mana spills into the realm. As you touch the flow of mana it trickles into you. You have received 10 mana.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1791455458300_0",
+          "type": "set_starting_mana",
+          "mana": 10
+        },
+        {
+          "id": "effect_1792496809116_1",
+          "type": "set_mana_to_starting_mana"
+        }
+      ],
+      "nextNodeId": "node_emor_departure_preparation"
+    },
+    "node_emor_departure_preparation": {
+      "id": "node_emor_departure_preparation",
+      "type": "text",
+      "title": "About to set out",
+      "speakerName": "Guiding voice",
+      "content": "Very well, this should suffice to go on a first path. I trust you know of some summons. Use them, but don't go out to deep. In fact, would you pick up a pebble from the ground?",
+      "buttonText": "Pick a pebble",
+      "nextNodeId": "node_emor_homecoming_pebble"
+    },
+    "node_emor_homecoming_pebble": {
+      "id": "node_emor_homecoming_pebble",
+      "type": "text",
+      "title": "The homecoming pebble",
+      "speakerName": "Guiding voice",
+      "content": "This pebble will bring you right back to the spot where you picked it up. At the cost of all your mana, but better to lose your mana than your life. There is always the spring to replenish you, but resurrection only works on summons.\n\nNow go, one of many paths await.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1791455609942_0",
+          "type": "give_object",
+          "object": "Homecoming pebble",
+          "quantity": 1
+        }
+      ],
+      "nextNodeId": "node_emor_first_path_departure"
+    },
+    "node_emor_first_path_departure": {
+      "id": "node_emor_first_path_departure",
+      "type": "text",
+      "title": "The first path",
+      "speakerName": "Narrator",
+      "content": "Looking around for a path you notice that you are surrounded by sheer nothingness. Armed with a tiny bit of mana, a pebble and the memory of a few summons you walk out in a random direction. You notice how the nothing around you forms into a landscape, every step creating a clearer picture of where you are going. It seems to be some sort of backalley.\n\nSuddenly, the nothing in front of you forms into 2 strange critters. Not taking any chances you start summoning.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_first_path_critter_battle"
+    },
+    "node_first_path_critter_battle": {
+      "id": "node_first_path_critter_battle",
+      "type": "battle",
+      "title": "The first battle",
+      "description": "Two strange critters are about to pounce at you.",
+      "challengeId": "pve_custom_1791457096149",
+      "victoryEffects": [
+        {
+          "id": "effect_1791457733036_0",
+          "type": "give_object",
+          "object": "Imagination",
+          "quantity": 2
+        }
+      ],
+      "onDefeatNodeId": "node_first_path_critter_battle_defeat",
+      "onVictoryNodeId": "node_first_path_critter_battle_victory"
+    },
+    "node_first_path_critter_battle_defeat": {
+      "id": "node_first_path_critter_battle_defeat",
+      "type": "text",
+      "title": "Defeated by critters",
+      "speakerName": "Narrator",
+      "content": "Your summons have been defeated and a critter is pouncing you. You react quickly and activate the homecoming pebble. The next instance you find yourself back in Emor. Determined to do better you visit the mana spring and go back out. Soon you face the critters again.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_first_path_critter_battle"
+    },
+    "node_first_path_critter_battle_victory": {
+      "id": "node_first_path_critter_battle_victory",
+      "type": "text",
+      "title": "First battle won",
+      "speakerName": "Guiding voice",
+      "content": "You won your first battle, hopefully the first of many. Note, that you recuperated all the mana from your surviving summons and you got half of the mana of the defeated enemies. It is possible to build quite some mana by defeating enemies.\n\nAnother thing. Now that you freed the mana of its tainted form you collected the essence of the imagination, the energies that forced the mana into the creature you just defeated. This essence is quite valuable in this realm, as it can be used create from the raw mana, similar to how you create your summons, but on a much wider scale.\n\nGo ahead, follow your path. Retrieve mana, collect essence.",
+      "buttonText": "Continue down the path",
+      "nextNodeId": "node_first_path_rabbit_battle"
+    },
+    "node_tranquil_meadow_outskirts_random_encounter": {
+      "id": "node_tranquil_meadow_outskirts_random_encounter",
+      "type": "multi",
+      "title": "Very easy random encounter",
+      "choices": [
+        {
+          "id": "route_node_1791810360633_101_1",
+          "nextNodeId": "node_tranquil_meadow_outskirts_rabbit_battle",
+          "probability": 20
+        },
+        {
+          "id": "route_node_1791810360633_101_2",
+          "nextNodeId": "node_tranquil_meadow_outskirts_croaking_pond_battle",
+          "probability": 20
+        },
+        {
+          "id": "route_1791884759124_2",
+          "nextNodeId": "node_tranquil_meadow_outskirts_critter_battle",
+          "probability": 20
+        },
+        {
+          "id": "route_1791885550205_3",
+          "nextNodeId": "node_tranquil_meadow_outskirts_swarming_lights_battle",
+          "probability": 20
+        },
+        {
+          "id": "route_1791886407078_4",
+          "nextNodeId": "node_tranquil_meadow_outskirts_soft_earth_battle",
+          "probability": 20
+        }
+      ]
+    },
+    "node_tranquil_meadow_outskirts_rabbit_battle": {
+      "id": "node_tranquil_meadow_outskirts_rabbit_battle",
+      "type": "battle",
+      "title": "Rabbit rumble",
+      "description": "You come across a small meadow with rabbits jumping around. Some seem rather aggressive.",
+      "challengeId": "pve_custom_1791811624342",
+      "onDefeatNodeId": "node_tranquil_meadow_outskirts_rabbit_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792133623305_0",
+          "type": "give_object",
+          "object": "Bunny ears",
+          "quantity": 3
+        }
+      ],
+      "onVictoryNodeId": "node_tranquil_meadow_outskirts_rabbit_battle_victory"
+    },
+    "node_tranquil_meadow_outskirts_croaking_pond_battle": {
+      "id": "node_tranquil_meadow_outskirts_croaking_pond_battle",
+      "type": "battle",
+      "title": "Croaking pond",
+      "description": "Your path leads you to a small pond. You hear loud croaking as you catch a terrible foul smelling whif. Then you see the toads approach.",
+      "challengeId": "pve_custom_1791883393461",
+      "onDefeatNodeId": "node_tranquil_meadow_outskirts_croaking_pond_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792133635890_0",
+          "type": "give_object",
+          "object": "Toad warts",
+          "quantity": 2
+        }
+      ],
+      "onVictoryNodeId": "node_tranquil_meadow_unfinished_path"
+    },
+    "node_tranquil_meadow_outskirts_critter_battle": {
+      "id": "node_tranquil_meadow_outskirts_critter_battle",
+      "type": "battle",
+      "title": "Critter attack",
+      "description": "You spot these strange critters again behind a bush. They turns towards you and charge.",
+      "challengeId": "pve_custom_1791457096149",
+      "onDefeatNodeId": "node_tranquil_meadow_outskirts_critter_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792133855028_0",
+          "type": "give_object",
+          "object": "Critter claws",
+          "quantity": 2
+        }
+      ],
+      "onVictoryNodeId": "node_tranquil_meadow_unfinished_path"
+    },
+    "node_tranquil_meadow_outskirts_swarming_lights_battle": {
+      "id": "node_tranquil_meadow_outskirts_swarming_lights_battle",
+      "type": "battle",
+      "title": "Swarming lights",
+      "description": "You pass a large tree when you suddenly see more and more lights swarming towards you.",
+      "challengeId": "pve_custom_1791884773037",
+      "onDefeatNodeId": "node_tranquil_meadow_outskirts_swarming_lights_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792133865043_0",
+          "type": "give_object",
+          "object": "Luminous dust",
+          "quantity": 2
+        }
+      ],
+      "onVictoryNodeId": "node_tranquil_meadow_unfinished_path"
+    },
+    "node_tranquil_meadow_outskirts_soft_earth_battle": {
+      "id": "node_tranquil_meadow_outskirts_soft_earth_battle",
+      "type": "battle",
+      "title": "Soft patch of earth",
+      "description": "",
+      "challengeId": "pve_custom_1791886232237",
+      "onDefeatNodeId": "node_tranquil_meadow_outskirts_soft_earth_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792133993093_0",
+          "type": "give_object",
+          "object": "Worm segment",
+          "quantity": 3
+        }
+      ],
+      "onVictoryNodeId": "node_tranquil_meadow_unfinished_path"
+    },
+    "node_tranquil_meadow_outskirts_rabbit_battle_defeat": {
+      "id": "node_tranquil_meadow_outskirts_rabbit_battle_defeat",
+      "type": "text",
+      "title": "Beaten by bunnies",
+      "speakerName": "Narrator",
+      "content": "Beaten. By. Bunnies. Your summoned creatures were beaten by... bunnies. Well, time to activate the pebble.",
+      "buttonText": "Return to Emor",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_tranquil_meadow_outskirts_croaking_pond_battle_defeat": {
+      "id": "node_tranquil_meadow_outskirts_croaking_pond_battle_defeat",
+      "type": "text",
+      "title": "The croak of death",
+      "speakerName": "Narrator",
+      "content": "The toads overwhelm your forces. Not wanting to find out what they would do to you, you activate the pebble.",
+      "buttonText": "Return to Emor",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_tranquil_meadow_outskirts_critter_battle_defeat": {
+      "id": "node_tranquil_meadow_outskirts_critter_battle_defeat",
+      "type": "text",
+      "title": "Defeated by critters",
+      "speakerName": "Narrator",
+      "content": "The critter rip your summons appart and charge you just as you activate the pebble.",
+      "buttonText": "Return to Emor",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_tranquil_meadow_outskirts_swarming_lights_battle_defeat": {
+      "id": "node_tranquil_meadow_outskirts_swarming_lights_battle_defeat",
+      "type": "text",
+      "title": "Stinged by the swarm",
+      "speakerName": "Narrator",
+      "content": "The swarming fireflies burn your forces to cinders. You feel the heat just as you activate the pebble.",
+      "buttonText": "Return to Emor.",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_tranquil_meadow_outskirts_soft_earth_battle_defeat": {
+      "id": "node_tranquil_meadow_outskirts_soft_earth_battle_defeat",
+      "type": "text",
+      "title": "Worm food",
+      "speakerName": "Narrator",
+      "content": "The worms drag your forces to the ground. You quickly activate the pebble as more worms show up.",
+      "buttonText": "Return to Emor",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_emor_homecoming_pebble_return": {
+      "id": "node_emor_homecoming_pebble_return",
+      "type": "text",
+      "title": "Return to Emor",
+      "speakerName": "Narrator",
+      "content": "You activate the homecoming pebble and find yourself back in Emor.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_emor_hub": {
+      "id": "node_emor_hub",
+      "type": "hub",
+      "title": "Emor",
+      "prompt": "Emor, where all paths of the realm originate from.",
+      "choices": [
+        {
+          "id": "choice_1791887454586",
+          "text": "Set out again",
+          "description": "",
+          "nextNodeId": "node_emor_tranquil_meadow_departure",
+          "type": "node"
+        },
+        {
+          "id": "choice_1792137029013",
+          "text": "The artist",
+          "description": "An artist has set up on the outskirts of Emor, staring down a path, waiting for inspiration.",
+          "nextNodeId": "node_emor_artist_shop",
+          "type": "shop",
+          "preconditions": [
+            {
+              "id": "precondition_9825dd36-aca7-42c6-9986-94c6887af78a",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_c9fb45fa-459a-44e0-a3d9-114839bafcec"
+            }
+          ]
+        },
+        {
+          "id": "choice_1793276365513",
+          "text": "A strange figure arrived",
+          "description": "Describe this point of interest.",
+          "nextNodeId": "node_emor_trader_arrival",
+          "type": "node",
+          "preconditions": [
+            {
+              "id": "precondition_5adad0a1-e0ef-4d58-b086-20073883a009",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7"
+            },
+            {
+              "id": "precondition_4f116c78-1b46-4c90-9af2-6a1077bc5832",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_c34337f0-7ef1-4a4c-a955-7041a3b02274"
+            }
+          ]
+        },
+        {
+          "id": "choice_1793277517967",
+          "text": "The trader",
+          "description": "Describe this point of interest.",
+          "nextNodeId": "node_emor_trader_shop",
+          "type": "shop",
+          "preconditions": [
+            {
+              "id": "precondition_2e51ac48-d35e-40f4-b4a7-a3137aae2630",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_c34337f0-7ef1-4a4c-a955-7041a3b02274"
+            }
+          ]
+        },
+        {
+          "id": "choice_1793278068356",
+          "text": "The rising crystal",
+          "description": "A strange crystal is rising from the ground in the center of Emor.",
+          "nextNodeId": "node_emor_architect_rising_crystal",
+          "type": "node",
+          "preconditions": [
+            {
+              "id": "precondition_ad9b7fa8-d33b-475f-8ef2-d7e041a6c3ba",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_af0a528a-0e0d-4e09-81ee-1d22c68d8979"
+            },
+            {
+              "id": "precondition_6d8c3284-c376-4c20-8174-42c82b8711ac",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_06b071fa-ea4c-4865-b88b-88564b3c3a47"
+            }
+          ]
+        },
+        {
+          "id": "choice_1793278926646",
+          "text": "The architect",
+          "description": "Describe this point of interest.",
+          "nextNodeId": "node_emor_architect_shop",
+          "type": "shop",
+          "preconditions": [
+            {
+              "id": "precondition_d12c4264-a5a1-4c39-b1af-d9e5459fd6b4",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_06b071fa-ea4c-4865-b88b-88564b3c3a47"
+            }
+          ]
+        }
+      ]
+    },
+    "node_emor_tranquil_meadow_departure": {
+      "id": "node_emor_tranquil_meadow_departure",
+      "type": "text",
+      "title": "A new path",
+      "speakerName": "Narrator",
+      "content": "You visit the mana spring and set out on another path.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1791887549219_0",
+          "type": "set_mana",
+          "mana": 10,
+          "useStartingMana": true
+        }
+      ],
+      "nextNodeId": "node_tranquil_meadow_outskirts_random_encounter"
+    },
+    "node_first_path_creature_parts": {
+      "id": "node_first_path_creature_parts",
+      "type": "text",
+      "title": "Creature parts",
+      "speakerName": "Guiding voice",
+      "content": "Another battle won and look, the tainted mana materialized into creature parts. This happens when the mana can't free itself, not even when the creature is destroyed. There is an artist in Emor, he could be interested in these things, you should visit him.",
+      "buttonText": "Return to Emor",
+      "nextNodeId": "node_emor_hub",
+      "effects": [
+        {
+          "id": "effect_1792137281878_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_c9fb45fa-459a-44e0-a3d9-114839bafcec"
+          ]
+        }
+      ]
+    },
+    "node_emor_artist_shop": {
+      "id": "node_emor_artist_shop",
+      "type": "shop",
+      "title": "The artist",
+      "offers": [
+        {
+          "id": "offer_1792137502465_0",
+          "costs": [
+            {
+              "object": "Bunny ears",
+              "quantity": 10
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_1792137563705_0",
+              "type": "give_card",
+              "cardId": "mon_life_rabbit(1)"
+            },
+            {
+              "id": "effect_1793275031699_1",
+              "type": "campaignunlock",
+              "unlockIds": [
+                "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7"
+              ]
+            }
+          ],
+          "title": "Learn darting rabbit summon",
+          "preconditions": [
+            {
+              "id": "precondition_d2772746-7dbc-41c2-8ff6-087e5dce562c",
+              "type": "card_not_unlocked",
+              "cardId": "mon_life_rabbit(1)"
+            }
+          ]
+        },
+        {
+          "id": "offer_1792137595466_1",
+          "costs": [
+            {
+              "object": "Toad warts",
+              "quantity": 10
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_1792137667762_0",
+              "type": "give_card",
+              "cardId": "mon_water_smelly_toad(1)"
+            },
+            {
+              "id": "effect_1793275131700_1",
+              "type": "campaignunlock",
+              "unlockIds": [
+                "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7"
+              ]
+            }
+          ],
+          "title": "Learn smelly toad summon",
+          "preconditions": [
+            {
+              "id": "precondition_32494f0e-2726-4c62-b2e4-95033bea61b2",
+              "type": "card_not_unlocked",
+              "cardId": "mon_water_smelly_toad(1)"
+            }
+          ]
+        },
+        {
+          "id": "offer_1792138795758_2",
+          "costs": [
+            {
+              "object": "Critter claws",
+              "quantity": 10
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_1792138829111_0",
+              "type": "give_card",
+              "cardId": "mon_death_strange_critter(1)"
+            },
+            {
+              "id": "effect_1793275143500_1",
+              "type": "campaignunlock",
+              "unlockIds": [
+                "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7"
+              ]
+            }
+          ],
+          "title": "Learn strange critter summon",
+          "preconditions": [
+            {
+              "id": "precondition_34c615c0-6989-4319-b1a9-af1d5301a2b6",
+              "type": "card_not_unlocked",
+              "cardId": "mon_death_strange_critter(1)"
+            }
+          ]
+        },
+        {
+          "id": "offer_artist_wiggly_worm",
+          "costs": [
+            {
+              "object": "Worm segment",
+              "quantity": 10
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_artist_wiggly_worm",
+              "type": "give_card",
+              "cardId": "mon_earth_wiggly_worm(1)"
+            },
+            {
+              "id": "effect_1793275159444_1",
+              "type": "campaignunlock",
+              "unlockIds": [
+                "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7"
+              ]
+            }
+          ],
+          "title": "Learn wiggly worm summon",
+          "preconditions": [
+            {
+              "id": "precondition_artist_wiggly_worm",
+              "type": "card_not_unlocked",
+              "cardId": "mon_earth_wiggly_worm(1)"
+            }
+          ]
+        },
+        {
+          "id": "offer_artist_firefly_swarm",
+          "costs": [
+            {
+              "object": "Luminous dust",
+              "quantity": 10
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_artist_firefly_swarm",
+              "type": "give_card",
+              "cardId": "mon_fire_firefly(1)"
+            },
+            {
+              "id": "effect_1793275169780_1",
+              "type": "campaignunlock",
+              "unlockIds": [
+                "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7"
+              ]
+            }
+          ],
+          "title": "Learn firefly swarm summon",
+          "preconditions": [
+            {
+              "id": "precondition_artist_firefly_swarm",
+              "type": "card_not_unlocked",
+              "cardId": "mon_fire_firefly(1)"
+            }
+          ]
+        }
+      ],
+      "description": "An artist has set up on the outskirts of Emor, staring down a path, waiting for inspiration.",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_first_path_rabbit_battle": {
+      "id": "node_first_path_rabbit_battle",
+      "type": "battle",
+      "title": "The second battle",
+      "challengeId": "pve_custom_1791811624342",
+      "onVictoryNodeId": "node_first_path_creature_parts",
+      "onDefeatNodeId": "node_first_path_rabbit_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792496914940_0",
+          "type": "give_object",
+          "object": "Bunny ears",
+          "quantity": 3
+        }
+      ]
+    },
+    "node_first_path_rabbit_battle_defeat": {
+      "id": "node_first_path_rabbit_battle_defeat",
+      "type": "text",
+      "title": "Defeated by rabbits",
+      "speakerName": "Narrator",
+      "content": "The rabbits rush around, biting and darting. As the last of your summons fall you activate the pebble.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_tranquil_meadow_outskirts_rabbit_battle_victory": {
+      "id": "node_tranquil_meadow_outskirts_rabbit_battle_victory",
+      "type": "multi",
+      "title": "Rabbits defeated",
+      "choices": [
+        {
+          "id": "route_node_1792140210518_592_1",
+          "nextNodeId": "node_tranquil_meadow_outskirts_random_encounter",
+          "probability": 20
+        },
+        {
+          "id": "route_node_1792140210518_592_2",
+          "nextNodeId": "node_tranquil_meadow_crossroads",
+          "probability": 80
+        }
+      ]
+    },
+    "node_tranquil_meadow_crossroads": {
+      "id": "node_tranquil_meadow_crossroads",
+      "type": "decision",
+      "title": "Tranquil meadow",
+      "prompt": "You find yourself in a tranquil meadow which stretches ahead of you. To your left you see the beginning of a forest, to your right the plains give way to hills.",
+      "choices": [
+        {
+          "id": "choice_1792140369055_1",
+          "text": "Continue on the meadow",
+          "description": "You continue on the meadow, walking through high grass and flowers.",
+          "nextNodeId": "node_tranquil_meadow_interior_random_encounter"
+        },
+        {
+          "id": "choice_1792140369055_2",
+          "text": "Turn towards the forest",
+          "description": "You turn towards the forest and soon the meadow gives way to trees and brambles.",
+          "nextNodeId": "node_tranquil_meadow_unfinished_path"
+        },
+        {
+          "id": "choice_1792140682260",
+          "text": "Go to the direction of the hills",
+          "description": "You make your way towards the hills, spotting rocks along the way.",
+          "nextNodeId": "node_tranquil_meadow_unfinished_path"
+        }
+      ]
+    },
+    "node_tranquil_meadow_unfinished_path": {
+      "id": "node_tranquil_meadow_unfinished_path",
+      "type": "text",
+      "title": "Not yet designed",
+      "speakerName": "Developer",
+      "content": "Yeah, this is not yet designed. Tell you what, lets just pretend you defeated some rabbits instead and then walked into a tranquil meadow.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_tranquil_meadow_crossroads"
+    },
+    "node_tranquil_meadow_interior_random_encounter": {
+      "id": "node_tranquil_meadow_interior_random_encounter",
+      "type": "multi",
+      "title": "Deep in the meadow",
+      "choices": [
+        {
+          "id": "route_node_1792140836299_997_1",
+          "nextNodeId": "node_tranquil_meadow_interior_flower",
+          "probability": 20
+        },
+        {
+          "id": "route_node_1792140836299_997_2",
+          "nextNodeId": "node_tranquil_meadow_interior_molerat_battle",
+          "probability": 40
+        },
+        {
+          "id": "route_1792481397985_2",
+          "nextNodeId": "node_tranquil_meadow_abandoned_farm_approach",
+          "probability": 40
+        }
+      ]
+    },
+    "node_tranquil_meadow_interior_flower": {
+      "id": "node_tranquil_meadow_interior_flower",
+      "type": "decision",
+      "title": "Pretty flower",
+      "prompt": "You come across a particulary pretty flower.",
+      "choices": [
+        {
+          "id": "choice_1792140953989_1",
+          "text": "Pick it",
+          "description": "Description of the first path",
+          "nextNodeId": "node_tranquil_meadow_interior_flower_pick"
+        },
+        {
+          "id": "choice_1792140953989_2",
+          "text": "Leave it",
+          "description": "You take in the sight a moment longer and continue.",
+          "nextNodeId": "node_tranquil_meadow_interior_random_encounter"
+        }
+      ]
+    },
+    "node_tranquil_meadow_interior_flower_pick": {
+      "id": "node_tranquil_meadow_interior_flower_pick",
+      "type": "multi",
+      "title": "You pick the flower",
+      "choices": [
+        {
+          "id": "route_node_1792141029854_799_1",
+          "nextNodeId": "node_tranquil_meadow_interior_flower_beneficial",
+          "probability": 50
+        },
+        {
+          "id": "route_node_1792141029854_799_2",
+          "nextNodeId": "node_tranquil_meadow_interior_flower_harmful",
+          "probability": 50
+        }
+      ]
+    },
+    "node_tranquil_meadow_interior_flower_beneficial": {
+      "id": "node_tranquil_meadow_interior_flower_beneficial",
+      "type": "text",
+      "title": "Good flower",
+      "speakerName": "Narrator",
+      "content": "You pick the flower and its blossoms start to glow. The mana stored in the flower flows to you.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_tranquil_meadow_crossroads",
+      "effects": [
+        {
+          "id": "effect_1792141119879_0",
+          "type": "give_mana",
+          "quantity": 2
+        }
+      ]
+    },
+    "node_tranquil_meadow_interior_flower_harmful": {
+      "id": "node_tranquil_meadow_interior_flower_harmful",
+      "type": "text",
+      "title": "Bad flower",
+      "speakerName": "Narrator",
+      "content": "As you pick the flower you feels a bit woozy. Too late you realize the toxic spores poisoning you. You quickly drop the flower and cast a minor healing spell.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_tranquil_meadow_crossroads",
+      "effects": [
+        {
+          "id": "effect_1792141152503_0",
+          "type": "remove_mana",
+          "quantity": 2
+        }
+      ]
+    },
+    "node_tranquil_meadow_interior_molerat_battle": {
+      "id": "node_tranquil_meadow_interior_molerat_battle",
+      "type": "battle",
+      "title": "Molerat attack",
+      "challengeId": "pve_custom_1792482829551",
+      "description": "",
+      "onDefeatNodeId": "node_tranquil_meadow_interior_molerat_battle_defeat",
+      "onVictoryNodeId": "node_tranquil_meadow_crossroads",
+      "victoryEffects": [
+        {
+          "id": "effect_1792483556351_0",
+          "type": "give_object",
+          "object": "Molerat meat",
+          "quantity": 1
+        }
+      ]
+    },
+    "node_tranquil_meadow_interior_molerat_battle_defeat": {
+      "id": "node_tranquil_meadow_interior_molerat_battle_defeat",
+      "type": "text",
+      "title": "Defeated by a molerat",
+      "speakerName": "Narrator",
+      "content": "Not too happy with the lack of nutrition provided by your summons the molerat turns to you. Pebble time.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_tranquil_meadow_abandoned_farm_approach": {
+      "id": "node_tranquil_meadow_abandoned_farm_approach",
+      "type": "decision",
+      "title": "A farm in the distance",
+      "prompt": "Walking through the meadow for some time you come across an overgrown field and shortly after you spot a couple of buildings in the distance.",
+      "choices": [
+        {
+          "id": "choice_1792481593467_1",
+          "text": "Enter the farm",
+          "description": "You approach the farm. It seems quiet, looks abandoned",
+          "nextNodeId": "node_abandoned_farm_arrival"
+        },
+        {
+          "id": "choice_1792481593467_2",
+          "text": "Go back to the meadow",
+          "description": "You decide to change direction and walk back into the meadow.",
+          "nextNodeId": "node_tranquil_meadow_interior_random_encounter"
+        }
+      ]
+    },
+    "node_abandoned_farm_arrival": {
+      "id": "node_abandoned_farm_arrival",
+      "type": "text",
+      "title": "Abandoned (?) farm",
+      "speakerName": "Narrator",
+      "content": "You walk towards the farm and make yourself known, but nobody answers. There are a couple builldings. A large building which looks like the main house is off the to left, a barn is straight ahead and a what looks to be a chicken coop is next to it. To the right you see a stable with a big much heap next to it. In the center of the farm you see a well that has been boarded up. ",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_hub": {
+      "id": "node_abandoned_farm_hub",
+      "type": "hub",
+      "title": "Abandoned farm",
+      "prompt": "Where would you like to go?",
+      "choices": [
+        {
+          "id": "poi_node_1792482101168_397_1",
+          "type": "node",
+          "text": "Main house",
+          "description": "You approach the main house and try the door.",
+          "nextNodeId": "node_abandoned_farm_main_house_entrance"
+        },
+        {
+          "id": "poi_node_1792482101168_397_2",
+          "type": "node",
+          "text": "Barn",
+          "description": "You walk towards the barn and open the heavy door.",
+          "nextNodeId": "node_abandoned_farm_barn_entrance"
+        },
+        {
+          "id": "choice_1793020080116",
+          "text": "The eggs collector",
+          "description": "You find the eggs collector behind the barn with his personal guard.",
+          "nextNodeId": "node_abandoned_farm_egg_collector_battle",
+          "type": "node",
+          "preconditions": [
+            {
+              "id": "precondition_c2096ad3-8c37-4bbb-932d-6f6d63cb694f",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_70260362-ee17-4655-b447-ba042bc18ddc"
+            },
+            {
+              "id": "precondition_c2181a32-2e01-4f79-99eb-a234c2045a48",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_f27231eb-ad92-4950-ae8e-71e7e0b4654d"
+            }
+          ]
+        },
+        {
+          "id": "choice_1793026698731",
+          "text": "The chicken coop",
+          "description": "You walk towards the chicken coop.",
+          "nextNodeId": "node_abandoned_farm_chicken_coop_entrance",
+          "type": "node"
+        },
+        {
+          "id": "poi_abandoned_farm_stable",
+          "type": "node",
+          "text": "Stable",
+          "description": "The stable is run down. The other animals are gone, and the pigs have taken over.",
+          "nextNodeId": "node_the_stable"
+        },
+        {
+          "id": "poi_abandoned_farm_doghouse",
+          "type": "node",
+          "text": "Doghouse",
+          "description": "The doghouse door is barricaded, but a tunnel has been dug beneath it toward the nearby forest.",
+          "nextNodeId": "node_abandoned_farm_doghouse",
+          "preconditions": [
+            {
+              "id": "precondition_477a8c17-4042-47fc-8021-73320ecd6451",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_d63cebac-6e36-4d2e-8b32-a81b4c2d0cae"
+            }
+          ]
+        },
+        {
+          "id": "poi_abandoned_farm_well",
+          "type": "node",
+          "text": "The small lumbercamp",
+          "description": "The old farm dog has made the small lumber camp his exile home.",
+          "nextNodeId": "node_decision_the_farm_dog",
+          "preconditions": [
+            {
+              "id": "precondition_d1f1a284-913c-4693-b785-30920872cc29",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_d63cebac-6e36-4d2e-8b32-a81b4c2d0cae"
+            }
+          ]
+        }
+      ]
+    },
+    "node_text_the_stable": {
+      "id": "node_text_the_stable",
+      "type": "text",
+      "title": "The stable",
+      "speakerName": "Narrator",
+      "content": "You approach the stable and hear grunting, quieking and snorting. You risk a quick peak through the door when one of the pigs notices you. The excited pig mob storms towards you with torches and pitchforks. Having no doubt in your mind that you can't fight them off you resort to use the pebble.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub",
+      "effects": [
+        {
+          "id": "effect_1793286810558_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_02b7cff0-078e-4257-9d9a-e83aac506c94"
+          ]
+        }
+      ]
+    },
+    "node_abandoned_farm_doghouse": {
+      "id": "node_abandoned_farm_doghouse",
+      "type": "text",
+      "title": "The Doghouse",
+      "speakerName": "Narrator",
+      "content": "The doghouse door has been barricaded from the outside. Beneath it, a narrow tunnel has been dug toward the nearby forest.",
+      "buttonText": "Follow the tunnel's direction",
+      "nextNodeId": "node_text_the_small_forest"
+    },
+    "node_abandoned_farm_well": {
+      "id": "node_abandoned_farm_well",
+      "type": "text",
+      "title": "The Boarded-up Well",
+      "speakerName": "Narrator",
+      "content": "The well stands in the center of the farm, its opening sealed beneath heavy boards.",
+      "buttonText": "Return to the farmyard",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_main_house_pig_butcher_battle": {
+      "id": "node_abandoned_farm_main_house_pig_butcher_battle",
+      "type": "battle",
+      "title": "The pig butcher",
+      "challengeId": "pve_custom_1792483201211",
+      "onDefeatNodeId": "node_abandoned_farm_main_house_pig_butcher_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1792483711464_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_83dddbb9-ac23-406c-b490-4acc5f46fab1"
+          ]
+        },
+        {
+          "id": "effect_1793288914886_1",
+          "type": "give_object",
+          "object": "Imagination",
+          "quantity": 5
+        }
+      ],
+      "onVictoryNodeId": "node_abandoned_farm_main_house_master_bedroom_door"
+    },
+    "node_abandoned_farm_main_house_pig_butcher_battle_defeat": {
+      "id": "node_abandoned_farm_main_house_pig_butcher_battle_defeat",
+      "type": "text",
+      "title": "Defeated by the pig butcher",
+      "speakerName": "Narrator",
+      "content": "The furious assault by the pig butcher leads you to stagger backwards out of the house. You activate the pebble just as the pig swings its cleaver. That was close.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_abandoned_farm_main_house_master_bedroom_door": {
+      "id": "node_abandoned_farm_main_house_master_bedroom_door",
+      "type": "text",
+      "title": "The master bedroom door",
+      "speakerName": "Narrator",
+      "content": "Having defeated the pig butcher you collect some of the meat on the table and move deeper into the house. As you approach what you think must be the master bedroom you notice a bad smell. ",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_main_house_den_of_gluttony"
+    },
+    "node_abandoned_farm_main_house_entrance": {
+      "id": "node_abandoned_farm_main_house_entrance",
+      "type": "multi",
+      "title": "The main house",
+      "choices": [
+        {
+          "id": "route_node_1792483642951_667_1",
+          "nextNodeId": "node_abandoned_farm_main_house_pig_butcher_battle",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_9f7b9974-01e9-4c13-a5d7-2fb304ea0094",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_83dddbb9-ac23-406c-b490-4acc5f46fab1"
+            },
+            {
+              "id": "precondition_7eedaaf9-20dd-4517-b39e-5fddb0e3988e",
+              "type": "has_item",
+              "item": "Key to the main house",
+              "quantity": 1
+            }
+          ]
+        },
+        {
+          "id": "route_node_1792483642951_667_2",
+          "nextNodeId": "node_abandoned_farm_main_house_master_bedroom_door",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_7d3a5739-7bf5-475e-a46d-56a5d5a1bb52",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_83dddbb9-ac23-406c-b490-4acc5f46fab1"
+            },
+            {
+              "id": "precondition_fb49b24b-1ecf-448e-9abc-c3f79f8a07cf",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_3ba1f729-d8bb-4bd9-9e6d-3f4d4d6f6a7b"
+            },
+            {
+              "id": "precondition_ecc6bc20-e352-49cd-bcad-3e8b8a6a3b6a",
+              "type": "has_item",
+              "item": "Key to the main house",
+              "quantity": 1
+            }
+          ]
+        },
+        {
+          "id": "route_1792487102450_2",
+          "nextNodeId": "node_abandoned_farm_main_house_empty",
+          "probability": 1,
+          "preconditions": [
+            {
+              "id": "precondition_27874fda-d4ab-49bc-ac04-c19a869d2dac",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_3ba1f729-d8bb-4bd9-9e6d-3f4d4d6f6a7b"
+            },
+            {
+              "id": "precondition_400d3118-208e-43f6-b6e4-326e99d150ab",
+              "type": "has_item",
+              "item": "Key to the main house",
+              "quantity": 1
+            }
+          ]
+        },
+        {
+          "id": "route_1793016468966_3",
+          "nextNodeId": "node_abandoned_farm_main_house_locked_door",
+          "probability": 1,
+          "preconditions": [
+            {
+              "id": "precondition_0fad9506-963b-454b-9389-c0e303f2ec87",
+              "type": "has_item",
+              "item": "Key to the main house",
+              "quantity": 0
+            }
+          ]
+        }
+      ]
+    },
+    "node_abandoned_farm_main_house_den_of_gluttony": {
+      "id": "node_abandoned_farm_main_house_den_of_gluttony",
+      "type": "text",
+      "title": "The den of gluttony",
+      "speakerName": "Narrator",
+      "content": "As you open the door and peek through you see an incredibly fat pig lying in a large double bed, surrounded by smaller pig servants catering to it. You don't know whether it is the sight or the smell that makes you gag more. The pig was clearly expecting its next meal, but seeing as you killed the cook, you will have to do.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_main_house_god_of_pork_battle"
+    },
+    "node_abandoned_farm_main_house_god_of_pork_battle": {
+      "id": "node_abandoned_farm_main_house_god_of_pork_battle",
+      "type": "battle",
+      "title": "The god of pork",
+      "challengeId": "pve_custom_1792484598313",
+      "description": "The incredibly fat pig squeels orders at his servants who attack you.",
+      "onVictoryNodeId": "node_abandoned_farm_main_house_god_of_pork_battle_victory",
+      "onDefeatNodeId": "node_abandoned_farm_main_house_god_of_pork_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1793288931926_0",
+          "type": "give_object",
+          "object": "Imagination",
+          "quantity": 10
+        }
+      ]
+    },
+    "node_abandoned_farm_main_house_empty": {
+      "id": "node_abandoned_farm_main_house_empty",
+      "type": "text",
+      "title": "The empty main house",
+      "speakerName": "Narrator",
+      "content": "The main house is empty, but the stench remains and will for a long time.",
+      "buttonText": "Leave the main house",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_main_house_god_of_pork_battle_defeat": {
+      "id": "node_abandoned_farm_main_house_god_of_pork_battle_defeat",
+      "type": "text",
+      "title": "Defeated by the god pork",
+      "speakerName": "Guide",
+      "content": "With your summons gone and the eye watering stench seemingly getting worse you welcome the escape of the pebble.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_abandoned_farm_main_house_god_of_pork_battle_victory": {
+      "id": "node_abandoned_farm_main_house_god_of_pork_battle_victory",
+      "type": "text",
+      "title": "The end of the divine pork",
+      "speakerName": "Narrator",
+      "content": "As the massive form of the god of pork collapses it release a large amount of mana. Just as you try to capture the energies they turn into the familiar looking form of card. You pick it up and inspect it. The card depicts the god of pork and the knowledge of how to summon it reveals itself to you. As the card disintegrates in your hand the faint smell of lard fills the air.",
+      "buttonText": "Leave the main house",
+      "nextNodeId": "node_abandoned_farm_hub",
+      "effects": [
+        {
+          "id": "effect_1792496579881_0",
+          "type": "give_card",
+          "cardId": "mon_life_god_of_pork(1)"
+        }
+      ]
+    },
+    "node_abandoned_farm_barn_interior": {
+      "id": "node_abandoned_farm_barn_interior",
+      "type": "text",
+      "title": "Inside the barn",
+      "speakerName": "Narrator",
+      "content": "Inside the barn you find all sorts of stored harvest. Potatoes, grain, carrots, all kind of vegetables. Some of the food seems edible, some is already rotting away. You hear gorging sounds from behind the barn door and see a large pig. Standing on four legs, happily grunting away it looks more like an ordinary pig. The scene stops being ordinary when the pig turns towards you, growls and fletches its teeth.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_barn_guard_hog_battle"
+    },
+    "node_abandoned_farm_barn_guard_hog_battle": {
+      "id": "node_abandoned_farm_barn_guard_hog_battle",
+      "type": "battle",
+      "title": "The guard hog",
+      "challengeId": "pve_custom_1793013537839",
+      "onVictoryNodeId": "node_abandoned_farm_barn_guard_hog_battle_victory",
+      "onDefeatNodeId": "node_abandoned_farm_barn_guard_hog_battle_defeat",
+      "victoryEffects": [
+        {
+          "id": "effect_1793288949694_0",
+          "type": "give_object",
+          "object": "Imagination",
+          "quantity": 4
+        }
+      ]
+    },
+    "node_abandoned_farm_barn_guard_hog_battle_defeat": {
+      "id": "node_abandoned_farm_barn_guard_hog_battle_defeat",
+      "type": "text",
+      "title": "Defeated by the guard hog",
+      "speakerName": "Narrator",
+      "content": "The hog mauls your summons and snarls at you as if he wants to give you one last chance to run. You get the hint and use the pebble.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_abandoned_farm_barn_guard_hog_battle_victory": {
+      "id": "node_abandoned_farm_barn_guard_hog_battle_victory",
+      "type": "text",
+      "title": "Defeated the guard hog",
+      "speakerName": "Narrator",
+      "content": "As the guard hog fades a small object stays behind, a key. You pocket the key.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793014239686_0",
+          "type": "give_object",
+          "object": "Key to the main house",
+          "quantity": 1
+        }
+      ],
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_barn_entrance": {
+      "id": "node_abandoned_farm_barn_entrance",
+      "type": "multi",
+      "title": "Entering the barn",
+      "choices": [
+        {
+          "id": "route_node_1793014292591_104_1",
+          "nextNodeId": "node_abandoned_farm_barn_interior",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_3b3abd38-68e6-4b4b-ab77-5eef441395e2",
+              "type": "has_item",
+              "item": "Key to the main house",
+              "quantity": 0
+            }
+          ]
+        },
+        {
+          "id": "route_node_1793014292591_104_2",
+          "nextNodeId": "node_abandoned_farm_barn_abandoned_harvest",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_4fd979c5-c521-44fa-bc8a-0912dab2441f",
+              "type": "has_item",
+              "item": "Key to the main house",
+              "quantity": 1
+            }
+          ]
+        }
+      ]
+    },
+    "node_abandoned_farm_barn_abandoned_harvest": {
+      "id": "node_abandoned_farm_barn_abandoned_harvest",
+      "type": "text",
+      "title": "The abandoned harvest",
+      "speakerName": "Narrator",
+      "content": "The barn is full of stored harvest, some of it already rotten. There is nothing for you to do here.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_main_house_locked_door": {
+      "id": "node_abandoned_farm_main_house_locked_door",
+      "type": "text",
+      "title": "Main house door",
+      "speakerName": "Narrator",
+      "content": "The door to the main house it locked. You try to force it open but it won't budge.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_chicken_coop_entrance": {
+      "id": "node_abandoned_farm_chicken_coop_entrance",
+      "type": "multi",
+      "title": "The chicken coop",
+      "choices": [
+        {
+          "id": "route_node_1793016953883_433_1",
+          "nextNodeId": "node_abandoned_farm_chicken_coop_interior",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_f92b8529-9163-461f-a22b-94812b721628",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_70260362-ee17-4655-b447-ba042bc18ddc"
+            }
+          ]
+        },
+        {
+          "id": "route_node_1793016953883_433_2",
+          "nextNodeId": "node_abandoned_farm_chicken_coop_sleeping_chickens",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_174c7c6d-5039-4c94-ab42-efab237ef7e0",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_70260362-ee17-4655-b447-ba042bc18ddc"
+            },
+            {
+              "id": "precondition_0ebb3549-bd5c-4a4b-9097-c164a18f5be8",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_f27231eb-ad92-4950-ae8e-71e7e0b4654d"
+            }
+          ]
+        },
+        {
+          "id": "route_1793018807983_2",
+          "nextNodeId": "node_abandoned_farm_chicken_coop_return",
+          "probability": 1,
+          "preconditions": [
+            {
+              "id": "precondition_93a785b8-a98e-45d7-801d-60f977dfc882",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_f27231eb-ad92-4950-ae8e-71e7e0b4654d"
+            },
+            {
+              "id": "precondition_22146eef-9e5f-4677-8d03-3ec4b59840f4",
+              "type": "card_not_unlocked",
+              "cardId": "mon_life_eggbert_the_eternal(1)"
+            }
+          ]
+        },
+        {
+          "id": "route_1793264803882_3",
+          "nextNodeId": "node_abandoned_farm_chicken_coop_happy_chickens",
+          "probability": 1,
+          "preconditions": [
+            {
+              "id": "precondition_98fe9498-c1c2-4a1c-8cbd-40a100e255d5",
+              "type": "card_unlocked",
+              "cardId": "mon_life_eggbert_the_eternal(1)"
+            }
+          ]
+        }
+      ]
+    },
+    "node_abandoned_farm_chicken_coop_interior": {
+      "id": "node_abandoned_farm_chicken_coop_interior",
+      "type": "text",
+      "title": "Enter the chicken coop",
+      "speakerName": "Narrator",
+      "content": "You open the door to the chicken coop and see dozen chickens sitting in their nests, looking distressed. The biggest one turns to you and to your surprise starts to talk.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_chicken_coop_mother_cluck"
+    },
+    "node_abandoned_farm_chicken_coop_mother_cluck": {
+      "id": "node_abandoned_farm_chicken_coop_mother_cluck",
+      "type": "text",
+      "title": "Meeting mother cluck",
+      "speakerName": "Mother cluck",
+      "content": "You stupid pigs already took our eggs today, leave us alone.\n\nShe looks you up and down for a moment.\n\nWait, you are no pig. You are a human!",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_chicken_coop_plight"
+    },
+    "node_abandoned_farm_chicken_coop_plight": {
+      "id": "node_abandoned_farm_chicken_coop_plight",
+      "type": "text",
+      "title": "The chickens plight",
+      "speakerName": "Mother cluck",
+      "content": "Are you... are you... are you take the farm back from the pigs? Please, you have to free us from these gluttonous beasts. They ate so many of us before realizing that no chickens means no eggs. Stupid pigs. And now we can't keep up with laying enough eggs and they know it. One of the pigs, we only know him as the eggs collector, keeps coming to the coop, grunting \"eggs collector\". He then gleefully throws us around and takes the eggs. We would give them to him anyway, but he just enjoys feels like a big guy when he collects the eggs for the tyrants.\n\nKill him and we will reward you. When he isn't taking our eggs he usually rolls around in the mud behind the barn.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub",
+      "effects": [
+        {
+          "id": "effect_1793018552804_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_70260362-ee17-4655-b447-ba042bc18ddc"
+          ]
+        }
+      ]
+    },
+    "node_abandoned_farm_chicken_coop_return": {
+      "id": "node_abandoned_farm_chicken_coop_return",
+      "type": "text",
+      "title": "Return to the chicken coop",
+      "speakerName": "Narrator",
+      "content": "With the eggs collector defeated you return to Mother cluck to bring the news.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_chicken_coop_liberation"
+    },
+    "node_abandoned_farm_chicken_coop_sleeping_chickens": {
+      "id": "node_abandoned_farm_chicken_coop_sleeping_chickens",
+      "type": "text",
+      "title": "Sleeping chickens",
+      "speakerName": "Narrator",
+      "content": "You return to the chicken coop, but all the chicken are asleep. Or maybe they are just pretending to be.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_abandoned_farm_chicken_coop_liberation": {
+      "id": "node_abandoned_farm_chicken_coop_liberation",
+      "type": "text",
+      "title": "Chicken liberator",
+      "speakerName": "Mother cluck",
+      "content": "That is his sack. You really did it? You killed the eggs collector? Our hero!\n\nAbout that reward. Here, take this egg.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_chicken_coop_unusual_egg"
+    },
+    "node_abandoned_farm_chicken_coop_unusual_egg": {
+      "id": "node_abandoned_farm_chicken_coop_unusual_egg",
+      "type": "text",
+      "title": "A not so simple egg",
+      "speakerName": "Narrator",
+      "content": "You take the egg and it immediately starts to crack. You expect to see a little chick, instead mana flows out of the egg shaping into a card. The card seems to depict a chicken.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_chicken_coop_eggbert"
+    },
+    "node_abandoned_farm_chicken_coop_eggbert": {
+      "id": "node_abandoned_farm_chicken_coop_eggbert",
+      "type": "text",
+      "title": "Eggbert the eternal",
+      "speakerName": "Mother cluck",
+      "content": "This is the symbol of chicken hope. Eggbert the eternal, protector of all that is chicken. We didn't have the means to summon him, but you... you can. He will fight your enemies for as long as you live.\n\nNow go, defeat the pigs in the main house and free us of these monsters once and for all.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub",
+      "effects": [
+        {
+          "id": "effect_1793264783610_0",
+          "type": "give_card",
+          "cardId": "mon_life_eggbert_the_eternal(1)"
+        }
+      ]
+    },
+    "node_abandoned_farm_egg_collector_battle": {
+      "id": "node_abandoned_farm_egg_collector_battle",
+      "type": "battle",
+      "title": "Eggs collector",
+      "challengeId": "pve_custom_1793019995227",
+      "description": "The eggs collector is rolling around in mud and notices you too late to flee to the main house. This is your chance to kill him.",
+      "onDefeatNodeId": "node_abandoned_farm_egg_collector_battle_defeat",
+      "onVictoryNodeId": "node_abandoned_farm_egg_collector_battle_victory",
+      "victoryEffects": [
+        {
+          "id": "effect_1793288957078_0",
+          "type": "give_object",
+          "object": "Imagination",
+          "quantity": 4
+        }
+      ]
+    },
+    "node_abandoned_farm_egg_collector_battle_defeat": {
+      "id": "node_abandoned_farm_egg_collector_battle_defeat",
+      "type": "text",
+      "title": "Defeated by the eggs collector",
+      "speakerName": "Narrator",
+      "content": "Your summoned forces succumb to the savy pig bureaucrat and you are force to flee to avoid paying a tax in your own blood. You activate the pebble, but as you arrive back you notice some imagination has been taken.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub",
+      "effects": [
+        {
+          "id": "effect_1793020488336_0",
+          "type": "remove_object",
+          "object": "Imagination",
+          "quantity": 1
+        }
+      ]
+    },
+    "node_abandoned_farm_egg_collector_battle_victory": {
+      "id": "node_abandoned_farm_egg_collector_battle_victory",
+      "type": "text",
+      "title": "End of the eggs collector",
+      "speakerName": "Narrator",
+      "content": "As the broken body of the eggs collector fades away you notice his sack, crusted with the yolk of broken eggs. You decide to bring it back to the chickens as proof of the monsters demise.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub",
+      "effects": [
+        {
+          "id": "effect_1793264698889_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_f27231eb-ad92-4950-ae8e-71e7e0b4654d"
+          ]
+        }
+      ]
+    },
+    "node_abandoned_farm_chicken_coop_happy_chickens": {
+      "id": "node_abandoned_farm_chicken_coop_happy_chickens",
+      "type": "text",
+      "title": "Happy chickens",
+      "speakerName": "Narrator",
+      "content": "The chickens are enthusiastically clucking, happy that their tormentor is no more.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_emor_trader_shop": {
+      "id": "node_emor_trader_shop",
+      "type": "shop",
+      "title": "The trader",
+      "offers": [
+        {
+          "id": "offer_1793274299659_0",
+          "offerType": "buy",
+          "costs": [
+            {
+              "object": "",
+              "quantity": 1
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_1793278018956_0",
+              "type": "campaignunlock",
+              "unlockIds": [
+                "campaign_unlock_af0a528a-0e0d-4e09-81ee-1d22c68d8979"
+              ]
+            }
+          ],
+          "title": "Sell objects for imagination",
+          "currencyObject": "Imagination"
+        }
+      ],
+      "nextNodeId": "node_emor_hub",
+      "description": "The hooded figure of the trader stands behind a strange black table."
+    },
+    "node_emor_trader_arrival": {
+      "id": "node_emor_trader_arrival",
+      "type": "text",
+      "title": "Arrival of the trader",
+      "speakerName": "Narrator",
+      "content": "You notice a hooded figure arrive at Emor. Not used to anyone arriving in Emor you curiously watch as the hooded figure sets up what looks like a market stall with a strange dark table as its centerpiece. As soon as the creature is finished it beckons you to approach.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_trader_gathering"
+    },
+    "node_emor_trader_gathering": {
+      "id": "node_emor_trader_gathering",
+      "type": "text",
+      "title": "The trader arrived",
+      "speakerName": "Guiding voice",
+      "content": "A trader arrived in Emor. They travel the realms and buy and sell. Nobody knows whether they are after profit or just revel in the trading itself, but they seem to have endless coffers. You will be able to buy and sell certain objects you find along the paths of Emor",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_trader_introduction"
+    },
+    "node_emor_trader_introduction": {
+      "id": "node_emor_trader_introduction",
+      "type": "text",
+      "title": "Meeting the trader",
+      "speakerName": "The trader",
+      "content": "Welcome traveller of the paths. I am looking for the spoils of this realm. I will take any you don't need off your hands. Do you by chance have anything for me?",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_trader_shop",
+      "effects": [
+        {
+          "id": "effect_1793277551215_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_c34337f0-7ef1-4a4c-a955-7041a3b02274"
+          ]
+        }
+      ]
+    },
+    "node_emor_architect_rising_crystal": {
+      "id": "node_emor_architect_rising_crystal",
+      "type": "text",
+      "title": "The rising crystal",
+      "speakerName": "Narrator",
+      "content": "A strange, rose-colored crystal keeps rising from the ground, it's edges seem to reflect light that isn't there.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_architect_unlock"
+    },
+    "node_emor_architect_unlock": {
+      "id": "node_emor_architect_unlock",
+      "type": "text",
+      "title": "The architect unlocked",
+      "speakerName": "Guiding voice",
+      "content": "The architect arrived. Some say this entity is the creator of Emor, others says he merely found and shaped it. Be that as it may, he seems to have run out of inspiration of what Emor could be. Maybe some imagination can help him to improve Emor.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_architect_shop",
+      "effects": [
+        {
+          "id": "effect_1793279076760_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_06b071fa-ea4c-4865-b88b-88564b3c3a47"
+          ]
+        }
+      ]
+    },
+    "node_emor_architect_shop": {
+      "id": "node_emor_architect_shop",
+      "type": "shop",
+      "title": "The architect",
+      "offers": [
+        {
+          "id": "offer_1793278473417_0",
+          "title": "Upgrade mana spring",
+          "offerType": "effect",
+          "costs": [
+            {
+              "object": "Imagination",
+              "quantity": 100
+            }
+          ],
+          "effects": [
+            {
+              "id": "effect_upgrade_mana_spring",
+              "type": "set_starting_mana",
+              "mana": 12
+            }
+          ]
+        }
+      ],
+      "description": "The architect looks like an inert crystal, but you feel a presence, hungering inside.",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_the_stable": {
+      "id": "node_the_stable",
+      "type": "multi",
+      "title": "The stable",
+      "choices": [
+        {
+          "id": "route_node_1793286892327_469_1",
+          "nextNodeId": "node_text_the_stable",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_813eb8c9-5dae-49e7-8941-ca75023550b7",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_02b7cff0-078e-4257-9d9a-e83aac506c94"
+            }
+          ]
+        },
+        {
+          "id": "route_node_1793286892327_469_2",
+          "nextNodeId": "node_the_pig_stable",
+          "probability": 50,
+          "preconditions": [
+            {
+              "id": "precondition_4fd0a406-ee54-4801-aee8-a0adb513fbaf",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_02b7cff0-078e-4257-9d9a-e83aac506c94"
+            },
+            {
+              "id": "precondition_b41112fa-ea63-4867-87f4-f92f3dddf6e3",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_176796ec-73e7-40e2-a478-46d4ce777ba7"
+            }
+          ]
+        },
+        {
+          "id": "route_1793287255435_2",
+          "nextNodeId": "node_text_collapsing_the_stable",
+          "probability": 1,
+          "preconditions": [
+            {
+              "id": "precondition_f67d9a47-7597-4133-b62f-2c72edff3958",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_176796ec-73e7-40e2-a478-46d4ce777ba7"
+            },
+            {
+              "id": "precondition_691b894e-0923-4799-9efe-61d4b44f88c8",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_be764a2c-7900-439a-bed3-d3e3feddfbc7"
+            },
+            {
+              "id": "precondition_05aba700-dc44-40e3-a4e9-e6a69914fa8e",
+              "type": "has_mana",
+              "mana": 25
+            }
+          ]
+        },
+        {
+          "id": "route_1793288448704_3",
+          "nextNodeId": "node_text_smoking_ruins_of_the_stable",
+          "probability": 1,
+          "preconditions": [
+            {
+              "id": "precondition_4cf1ba16-c265-474a-b3a8-6c1bb9a984fa",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_be764a2c-7900-439a-bed3-d3e3feddfbc7"
+            }
+          ]
+        }
+      ]
+    },
+    "node_the_pig_stable": {
+      "id": "node_the_pig_stable",
+      "type": "text",
+      "title": "The pig stable",
+      "speakerName": "Narrator",
+      "content": "Well aware that there are likely dozens of pigs inside you steer clear of the stable.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_text_collapsing_the_stable": {
+      "id": "node_text_collapsing_the_stable",
+      "type": "text",
+      "title": "Collapsing the stable",
+      "speakerName": "Narrator",
+      "content": "According to the dogs plan you use your mana to summon a weak earthquake. The stable quickly starts collapsing, burying most of the pigs under the rubble. A small group of pigs escaped and with your mana drained from the spell all you can do is resort to the pebble. Just as you activate it you see the dog with a torch in its mouth.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793288221878_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_be764a2c-7900-439a-bed3-d3e3feddfbc7"
+          ]
+        }
+      ]
+    },
+    "node_text_smoking_ruins_of_the_stable": {
+      "id": "node_text_smoking_ruins_of_the_stable",
+      "type": "text",
+      "title": "Smoking ruins of the stable",
+      "speakerName": "Narrator",
+      "content": "After you made your way back to the farm you come across the smoking ruins of the stable. You approach as the smell of bacon enters your nose. Suddenly you hear squeaking noises. You turn to see a few scarred and burned pigs attack.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_battle_the_burn_scarred_pigs"
+    },
+    "node_battle_the_burn_scarred_pigs": {
+      "id": "node_battle_the_burn_scarred_pigs",
+      "type": "battle",
+      "title": "The burn-scarred pigs",
+      "challengeId": "pve_custom_1793288787725",
+      "description": "A group of pigs which survived the collapse and burning of the stable is out for revenge.",
+      "victoryEffects": [
+        {
+          "id": "effect_1793288962822_0",
+          "type": "give_object",
+          "object": "Imagination",
+          "quantity": 6
+        }
+      ],
+      "onVictoryNodeId": "node_text_reunited_with_the_farm_dog",
+      "onDefeatNodeId": "node_text_defeated_by_burn_scarred_pigs"
+    },
+    "node_text_defeated_by_burn_scarred_pigs": {
+      "id": "node_text_defeated_by_burn_scarred_pigs",
+      "type": "text",
+      "title": "Defeated by burn-scarred pigs",
+      "speakerName": "Narrator",
+      "content": "It must be the distracting smell of bacon which allows the pigs to overwhelm your forces. You use the pebble to escape, but can you escape the hankering for bacon?",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_text_reunited_with_the_farm_dog": {
+      "id": "node_text_reunited_with_the_farm_dog",
+      "type": "text",
+      "title": "Reunited with the farm dog",
+      "speakerName": "Narrator",
+      "content": "Shortly after you took down the burn-scarred pigs the farm dog approaches you, his mouth bloodied.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_text_vengeance_completed"
+    },
+    "node_text_vengeance_completed": {
+      "id": "node_text_vengeance_completed",
+      "type": "text",
+      "title": "Vengeance completed",
+      "speakerName": "The farm dog",
+      "content": "That must have been the last of them. Finally the master has been avenged. But... what now. I thought I would feel relief, but all I feel is emptiness where before was purpose. I... I...",
+      "buttonText": "Continue",
+      "nextNodeId": "node_text_those_out_for_revenge"
+    },
+    "node_text_those_out_for_revenge": {
+      "id": "node_text_those_out_for_revenge",
+      "type": "text",
+      "title": "Those out for revenge",
+      "speakerName": "Narrator",
+      "content": "The dog saddens and walks towards the well where he start to dig in what you can only describe as a melancholic way.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793289996466_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_3dec001b-5255-478a-9475-da6548c505f8"
+          ]
+        }
+      ],
+      "nextNodeId": "node_abandoned_farm_hub"
+    },
+    "node_text_the_small_forest": {
+      "id": "node_text_the_small_forest",
+      "type": "text",
+      "title": "The small forest",
+      "speakerName": "Narrator",
+      "content": "You walk towards the small forest the tunnel seems to have led to. As you approach the ouskirts full of overgrowth you spot a small storage for logs and a rusted old axe. When you take a closer look you hear a growl. You fear a wolf, but as you turn you see an old dog with a missing eye approach. To your surprise it talks.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793290800732_0",
+          "type": "campaignunlock",
+          "unlockIds": []
+        }
+      ],
+      "nextNodeId": "node_text_the_snarling_dog"
+    },
+    "node_text_the_snarling_dog": {
+      "id": "node_text_the_snarling_dog",
+      "type": "text",
+      "title": "The snarling dog",
+      "speakerName": "The farm dog",
+      "content": "It was your last mistake to come out here you damn pig.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_decision_the_farm_dog"
+    },
+    "node_decision_the_farm_dog": {
+      "id": "node_decision_the_farm_dog",
+      "type": "decision",
+      "title": "The farm dog",
+      "prompt": "Present a strategic or narrative question to the player...",
+      "choices": [
+        {
+          "id": "choice_1793620317982_1",
+          "text": "First Option",
+          "description": "Description of the first path",
+          "nextNodeId": "node_text_feeding_the_dog",
+          "preconditions": [
+            {
+              "id": "precondition_b8ef5fac-6703-4139-a00c-9c0587312901",
+              "type": "has_not_unlock",
+              "unlockId": "campaign_unlock_176796ec-73e7-40e2-a478-46d4ce777ba7"
+            },
+            {
+              "id": "precondition_eda7dbe7-bee9-4efe-8e5f-01dda46de2ae",
+              "type": "has_item",
+              "item": "Molerat meat",
+              "quantity": 1
+            }
+          ]
+        },
+        {
+          "id": "choice_1793620317982_2",
+          "text": "Second Option",
+          "description": "Description of the second path",
+          "nextNodeId": ""
+        }
+      ]
+    },
+    "node_text_feeding_the_dog": {
+      "id": "node_text_feeding_the_dog",
+      "type": "text",
+      "title": "Feeding the dog",
+      "speakerName": "Narrator",
+      "content": "You throw a chunk of molerat meat to the dog who eyes the meat. Then eyes you, seemingly squinting.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793620418167_0",
+          "type": "remove_object",
+          "object": "Molerat meat",
+          "quantity": 1
+        }
+      ],
+      "nextNodeId": "node_text_pigs_don_t_share"
+    },
+    "node_text_pigs_don_t_share": {
+      "id": "node_text_pigs_don_t_share",
+      "type": "text",
+      "title": "Pigs don't share",
+      "speakerName": "The farm dog",
+      "content": "Pigs don't share food. You are no pig. You are a... can it be... you are a human?!",
+      "buttonText": "Continue",
+      "nextNodeId": "node_text_a_dog_s_tale"
+    },
+    "node_text_a_dog_s_tale": {
+      "id": "node_text_a_dog_s_tale",
+      "type": "text",
+      "title": "A dog's tale",
+      "speakerName": "The farm dog",
+      "content": "Apologies for my rudeness. My sight is bad since... that night...\n\nSince you are human, maybe you are here to restore the farm. You see, a long time ago, the farm was very different. It was the era of the humans. I was just a pup when the master brought me here and for years I served him diligently. It was a good time, the master and his wife took care of the farm and all animals were cared for. Everyone was happy, even the damned pigs.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_text_a_dog_s_tale_continues"
+    },
+    "node_text_a_dog_s_tale_continues": {
+      "id": "node_text_a_dog_s_tale_continues",
+      "type": "text",
+      "title": "A dog's tale continues",
+      "speakerName": "The farm dog",
+      "content": "Then something happened. The master didn't leave his house for days. I waited faithfully at the door when he eventually came out of the house but all he did was grab a shovel and dug a large whole. Then he put his wife inside and close it and just sat there in the dirt for hours.\n\nThat is when I failed him. I wanted to be there for him and I didn't notice the unrest that plagued the other animals. Many hadn't be fed for days, the horses and the ox had escaped and the pigs had broken into the barn. I thought they were just stealing the masters food, but when he got up to get water from the well, the pigs stored out pushed him in. That was the last time I saw the master and the last time I heard his voice as he screamed, falling into the well.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_text_a_dog_s_tale_ends"
+    },
+    "node_text_a_dog_s_tale_ends": {
+      "id": "node_text_a_dog_s_tale_ends",
+      "type": "text",
+      "title": "A dog's tale ends",
+      "speakerName": "The farm dog",
+      "content": "In a rage I attacked the pigs, ripping and tearing through flesh and bone, but there were too many of them. They overwhelmed me, sat on me laughing and grunting. They would have killed me then but a terrible storm saved me.\n\nThe pigs sheltered in the stable and the main house and I dragged myself into the doghouse and collapsed. When I woke up, the doghouse was barricaded. The stupid pigs thought would leave me there to starve. Instead I dug out and escaped to this small camp, the only other place I knew. From here I have been planning my revenge, tearing apart every pig that strays too far. Eventually I will kill them all and avenge the master.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_text_the_farm_dog_s_plan"
+    },
+    "node_text_the_farm_dog_s_plan": {
+      "id": "node_text_the_farm_dog_s_plan",
+      "type": "text",
+      "title": "The farm dog's plan",
+      "speakerName": "The farm dog",
+      "content": "Listen human. Most of the pigs made their home in the stable. The master had plans to build another one, he kept saying that it could collapse in a storm. All we need is a proper storm and the stupid pigs will shelter in the stable and it will collapse on them. Every storm I hope it will happen, but as much as the stable's walls groan it is never quite enough. Maybe you can find something that helps you in this camp.\n\n",
+      "buttonText": "Continue",
+      "nextNodeId": "node_decision_looking_through_the_small_lumber_camp"
+    },
+    "node_decision_looking_through_the_small_lumber_camp": {
+      "id": "node_decision_looking_through_the_small_lumber_camp",
+      "type": "decision",
+      "title": "Looking through the small lumber camp",
+      "prompt": "The camp is just a small tent, inside is a small trunk, a bunch of rope and a small mat for rest.",
+      "choices": [
+        {
+          "id": "c_1793624196322_1",
+          "text": "Inspect the axes",
+          "description": "You walk over to small trunk filled with tools.",
+          "nextNodeId": "node_text_the_axes_won_t_help"
+        },
+        {
+          "id": "c_1793624196322_2",
+          "text": "Look at the rope",
+          "description": "You pick up the rope to have a closer look.",
+          "nextNodeId": "node_text_the_rope_won_t_help"
+        },
+        {
+          "id": "choice_1793624541622",
+          "text": "Inspect the mat",
+          "description": "You check the map and notice a small leather bundle next to it.",
+          "nextNodeId": "node_text_the_small_leather_bundle"
+        }
+      ]
+    },
+    "node_text_the_axes_won_t_help": {
+      "id": "node_text_the_axes_won_t_help",
+      "type": "text",
+      "title": "The axes won't help",
+      "speakerName": "Narrator",
+      "content": "You look at the large and small axes in the small tent. While they were kept dry for the most part they are clearly worn. Even if they were in pristine condition, you doubt you could collapse the stables with them.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_decision_looking_through_the_small_lumber_camp"
+    },
+    "node_text_the_rope_won_t_help": {
+      "id": "node_text_the_rope_won_t_help",
+      "type": "text",
+      "title": "The rope won't help",
+      "speakerName": "Narrator",
+      "content": "The rope was probably used to drag chopped trees into the camp and is a bit worn but looks fine. You doubt you have the upper body strength to pull down the stable though.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_decision_looking_through_the_small_lumber_camp"
+    },
+    "node_text_the_small_leather_bundle": {
+      "id": "node_text_the_small_leather_bundle",
+      "type": "text",
+      "title": "The small leather bundle",
+      "speakerName": "Narrator",
+      "content": "You open up the leather bundle to find a book inside. It looks old but strangely well preserved considering it must have been lying here for a long time. You open it up and find the title.\n\nOf storms and stables - by Alric Stormbringer\n\nYou remember your former mentor talking about this Alric before. He was a powerful mage.\n\nCurious you start reading the book. To your surprise it is not a collection of spells and arcane magic, but Alric ranting on and on about how he really hated living next to a farm. In the appendix you find instructions for the spell he used to... solve his issue.\n\nYou study the spell and think you can reproduce it, but it will require large amounts of mana.\n\nYou wonder whether the forest holds some beasts that can supply the mana you need.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793628821071_0",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_e123d396-e469-4b50-bf3d-6dc225cd6aa4"
+          ]
+        }
+      ],
+      "nextNodeId": "node_multi_hunting_in_the_small_forest"
+    },
+    "node_multi_hunting_in_the_small_forest": {
+      "id": "node_multi_hunting_in_the_small_forest",
+      "type": "multi",
+      "title": "Hunting in the small forest",
+      "choices": [
+        {
+          "id": "route_node_1793628855047_574_1",
+          "nextNodeId": "node_decision_berry_bush",
+          "probability": 20
+        },
+        {
+          "id": "route_node_1793628855047_574_2",
+          "nextNodeId": "",
+          "probability": 50
+        }
+      ]
+    },
+    "node_decision_berry_bush": {
+      "id": "node_decision_berry_bush",
+      "type": "decision",
+      "title": "Berry bush",
+      "prompt": "You find some tasty looking berries. Do you want to eat them?",
+      "choices": [
+        {
+          "id": "c_1793629099962_1",
+          "text": "Path Alpha",
+          "description": "Description of the first path",
+          "nextNodeId": ""
+        },
+        {
+          "id": "c_1793629099962_2",
+          "text": "Path Beta",
+          "description": "Description of the second path",
+          "nextNodeId": ""
+        }
+      ]
+    }
+  },
+  "embeddedCards": [
+    {
+      "id": "sum_neutral_the_apprentice(1)",
+      "name": "The apprentice",
+      "splinter": "Neutral",
+      "cardType": "Summoner",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "The apprentice seeks knowledge, power and wisdom, but lacks all it.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 0,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 0,
+          "armor": 0,
+          "health": 0,
+          "abilities": []
+        }
+      ],
+      "summonerBuffs": {
+        "melee": 0
+      }
+    },
+    {
+      "id": "spl_4",
+      "name": "Fire Beetle",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 1,
+          "attackType": "Ranged",
+          "speed": 2,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 2,
+          "mana": 3,
+          "attack": 1,
+          "attackType": "Ranged",
+          "speed": 2,
+          "armor": 0,
+          "health": 5,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 3,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Ranged",
+          "speed": 2,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 4,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Ranged",
+          "speed": 2,
+          "armor": 0,
+          "health": 5,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 5,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Ranged",
+          "speed": 2,
+          "armor": 1,
+          "health": 4,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 6,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Ranged",
+          "speed": 2,
+          "armor": 1,
+          "health": 5,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 7,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Ranged",
+          "speed": 3,
+          "armor": 1,
+          "health": 5,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 8,
+          "mana": 3,
+          "attack": 3,
+          "attackType": "Ranged",
+          "speed": 3,
+          "armor": 1,
+          "health": 4,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 9,
+          "mana": 3,
+          "attack": 3,
+          "attackType": "Ranged",
+          "speed": 3,
+          "armor": 1,
+          "health": 5,
+          "abilities": [
+            "Snipe"
+          ]
+        },
+        {
+          "level": 10,
+          "mana": 3,
+          "attack": 3,
+          "attackType": "Ranged",
+          "speed": 3,
+          "armor": 2,
+          "health": 6,
+          "abilities": [
+            "Snipe"
+          ]
+        }
+      ],
+      "imageUrl": "https://d36mxiodh3r3b5.cloudfront.net/cards_by_level/beta/Fire%20Beetle_lv1.png",
+      "isCustom": false
+    },
+    {
+      "id": "mon_fire_kobold_miner",
+      "name": "Kobold Miner",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 2,
+          "mana": 2,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 3,
+          "mana": 2,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 4,
+          "mana": 2,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 5,
+          "mana": 2,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 6,
+          "mana": 2,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 7,
+          "mana": 2,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 5,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 8,
+          "mana": 2,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 5,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 9,
+          "mana": 2,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 5,
+          "abilities": [
+            "Sneak"
+          ]
+        },
+        {
+          "level": 10,
+          "mana": 2,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 6,
+          "abilities": [
+            "Sneak"
+          ]
+        }
+      ],
+      "imageUrl": "https://d36mxiodh3r3b5.cloudfront.net/cards_by_level/beta/Kobold%20Miner_lv1.png",
+      "isCustom": true
+    },
+    {
+      "id": "mon_fire_cerberus",
+      "name": "Cerberus",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 4,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 0,
+          "health": 5,
+          "abilities": [
+            "Heal"
+          ]
+        },
+        {
+          "level": 2,
+          "mana": 4,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 0,
+          "health": 6,
+          "abilities": [
+            "Heal"
+          ]
+        },
+        {
+          "level": 3,
+          "mana": 4,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 0,
+          "health": 6,
+          "abilities": [
+            "Heal"
+          ]
+        },
+        {
+          "level": 4,
+          "mana": 4,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 7,
+          "abilities": [
+            "Heal"
+          ]
+        },
+        {
+          "level": 5,
+          "mana": 4,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 7,
+          "abilities": [
+            "Heal",
+            "Retaliate"
+          ]
+        },
+        {
+          "level": 6,
+          "mana": 4,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 8,
+          "abilities": [
+            "Heal",
+            "Retaliate"
+          ]
+        },
+        {
+          "level": 7,
+          "mana": 4,
+          "attack": 4,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 8,
+          "abilities": [
+            "Heal",
+            "Retaliate"
+          ]
+        },
+        {
+          "level": 8,
+          "mana": 4,
+          "attack": 4,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 9,
+          "abilities": [
+            "Heal",
+            "Retaliate"
+          ]
+        }
+      ],
+      "imageUrl": "https://d36mxiodh3r3b5.cloudfront.net/cards_by_level/beta/Cerberus_lv1.png",
+      "isCustom": true
+    },
+    {
+      "id": "mon_fire_serpentine_spy",
+      "name": "Serpentine Spy",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 2,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 3,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 4,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 4,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 5,
+          "mana": 3,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 6,
+          "mana": 3,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 5,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 7,
+          "mana": 3,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 6,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 8,
+          "mana": 3,
+          "attack": 4,
+          "attackType": "Melee",
+          "speed": 6,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 9,
+          "mana": 3,
+          "attack": 4,
+          "attackType": "Melee",
+          "speed": 6,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Opportunity"
+          ]
+        },
+        {
+          "level": 10,
+          "mana": 3,
+          "attack": 4,
+          "attackType": "Melee",
+          "speed": 6,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Opportunity",
+            "Poison"
+          ]
+        }
+      ],
+      "imageUrl": "https://d36mxiodh3r3b5.cloudfront.net/cards_by_level/beta/Serpentine%20Spy_lv1.png",
+      "isCustom": true
+    },
+    {
+      "id": "sum_fire_pyre",
+      "name": "Pyre",
+      "splinter": "Fire",
+      "cardType": "Summoner",
+      "rarity": "Rare",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 2,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 3,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 4,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 5,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 6,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 7,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        },
+        {
+          "level": 8,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        }
+      ],
+      "summonerBuffs": {
+        "speed": 1
+      },
+      "imageUrl": "https://d36mxiodh3r3b5.cloudfront.net/cards_by_level/beta/Pyre_lv1.png",
+      "isCustom": true
+    },
+    {
+      "id": "mon_death_strange_critter(1)",
+      "name": "Strange critter",
+      "splinter": "Death",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Charge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_neutral_firewood_basket(1)",
+      "name": "Firewood basket",
+      "splinter": "Neutral",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A large basket full of firewood. Why summoners insist on summoning wood for a fire instead of fire or warmth is a mystery to all but the summoners.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 1,
+          "health": 3,
+          "abilities": []
+        }
+      ]
+    },
+    {
+      "id": "mon_neutral_magic_broom(1)",
+      "name": "Magic broom",
+      "splinter": "Neutral",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "Magic brooms are summoned to help with cleaning. They can also clean your path of enemies, to a degree.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 5,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 2,
+          "abilities": [
+            "Reach"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_neutral_magic_bucket(1)",
+      "name": "Magic bucket",
+      "splinter": "Neutral",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A bucket filled with water, used to clean, but may also clean your path of enemies. Eventually.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 1,
+          "attackType": "Ranged",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": []
+        }
+      ]
+    },
+    {
+      "id": "mon_life_rabbit(1)",
+      "name": "Darting rabbit",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Dodge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_water_smelly_toad(1)",
+      "name": "Smelly toad",
+      "splinter": "Water",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Reach"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_fire_firefly(1)",
+      "name": "Firefly swarm",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A swarm of tiny fireflies.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Reach",
+            "Flying"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_earth_wiggly_worm(1)",
+      "name": "Wiggly worm",
+      "splinter": "Earth",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 0,
+          "health": 2,
+          "abilities": []
+        }
+      ]
+    },
+    {
+      "id": "mon_life_giant_molerat(1)",
+      "name": "Giant molerat",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A giant molerat. Digging through the ground, gorging on worms and beetles they eventually get big enough to look for larger prey on the surface.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 6,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 0,
+          "health": 7,
+          "abilities": [
+            "Ambush"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_fire_pig_butcher(1)",
+      "name": "Pig butcher",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Epic",
+      "isCustom": true,
+      "description": "A large pig on its hind legs with large cleaver. Some wonder how a pig can hold a cleaver, those who fail to run discover what it can do with it.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 6,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 6,
+          "abilities": [
+            "Blast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_life_god_of_pork(1)",
+      "name": "God of pork",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Legendary",
+      "isCustom": true,
+      "description": "An incredibly fat pig. It seems the other pigs are worshiping it as a deity, the god of pork.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 10,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 10,
+          "abilities": [
+            "Immunity",
+            "Scavenger",
+            "Untrainable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_life_guard_hog(1)",
+      "name": "Guard hog",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "You heard before of a pig that thinks its a dog. This one however is not so much interested in herding sheep as in ripping your throat out.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 6,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 3,
+          "armor": 1,
+          "health": 5,
+          "abilities": [
+            "Enrage"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_life_the_eggs_collector(1)",
+      "name": "The eggs collector",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "A fat pig with a fancy hat on its head a big pouch for collecting the eggs. A few say he is just as much a victim of the tyranny of the state as everyone else. Those clearly haven't seen him gleefully doing his job, eggs collecting at every opportunity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 5,
+          "attack": 1,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Opportunity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_life_pig_guard(1)",
+      "name": "Pig guard",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "A simple pig guard. These pigs are fine with being a meat shield for the more important pigs.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 5,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 4,
+          "abilities": []
+        }
+      ]
+    },
+    {
+      "id": "mon_life_eggbert_the_eternal(1)",
+      "name": "Eggbert the eternal",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Legendary",
+      "isCustom": true,
+      "description": "Eggbert the eternal is a legend among chickens. A legend, that may be summoned by those who earned their favor.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Charge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_fire_pig_servant(1)",
+      "name": "Pig servant",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "A lowly pig servant who's only purpose is to feed the god of pork.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 5,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 3,
+          "abilities": [
+            "Immunity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mon_life_burn_scarred_pig(1)",
+      "name": "Burn-scarred pig",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "These pigs show lots of scars and burns. And smell of bacon",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 4,
+          "attack": 2,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 0,
+          "health": 3,
+          "abilities": []
+        }
+      ]
+    }
+  ],
+  "embeddedChallenges": [
+    {
+      "id": "pve_custom_1791883393461",
+      "name": "Croaking pond",
+      "description": "A loud croaking sound and a foul smell originate from this pond.",
+      "manaCap": 12,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_water_smelly_toad(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_water_smelly_toad(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_water_smelly_toad(1)",
+          "name": "Smelly toad",
+          "splinter": "Water",
+          "cardType": "Monster",
+          "rarity": "Common",
+          "isCustom": true,
+          "description": "A newly forged PvE battle entity.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 3,
+              "attack": 1,
+              "attackType": "Melee",
+              "speed": 1,
+              "armor": 0,
+              "health": 3,
+              "abilities": [
+                "Reach"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1793019995227",
+      "name": "Fight the eggs collector",
+      "description": "A newly designed combat challenge for aspiring champions.",
+      "manaCap": 25,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_life_pig_guard(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_the_eggs_collector(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_life_the_eggs_collector(1)",
+          "name": "The eggs collector",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "A fat pig with a fancy hat on its head a big pouch for collecting the eggs. A few say he is just as much a victim of the tyranny of the state as everyone else. Those clearly haven't seen him gleefully doing his job, eggs collecting at every opportunity.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 5,
+              "attack": 1,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 0,
+              "health": 4,
+              "abilities": [
+                "Opportunity"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mon_life_pig_guard(1)",
+          "name": "Pig guard",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "A simple pig guard. These pigs are fine with being a meat shield for the more important pigs.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 5,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 0,
+              "health": 4,
+              "abilities": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1791457096149",
+      "name": "Just two critters",
+      "description": "A newly designed combat challenge for aspiring champions.",
+      "difficulty": "Silver",
+      "manaCap": 12,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_death_strange_critter(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_death_strange_critter(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_death_strange_critter(1)",
+          "name": "Strange critter",
+          "splinter": "Death",
+          "cardType": "Monster",
+          "rarity": "Common",
+          "isCustom": true,
+          "description": "A newly forged PvE battle entity.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 3,
+              "attack": 1,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 0,
+              "health": 2,
+              "abilities": [
+                "Charge"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1792482829551",
+      "name": "Molerat ambush",
+      "description": "A tranquil meadow was turned into a dangerous ambush when a molerat lunges out of the ground.",
+      "manaCap": 12,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_life_giant_molerat(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_life_giant_molerat(1)",
+          "name": "Giant molerat",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Common",
+          "isCustom": true,
+          "description": "A giant molerat. Digging through the ground, gorging on worms and beetles they eventually get big enough to look for larger prey on the surface.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 4,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 1,
+              "armor": 0,
+              "health": 5,
+              "abilities": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1791811624342",
+      "name": "Rowdy rabbits",
+      "description": "You come across rabbits with strangely elongated front teeth.",
+      "manaCap": 12,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_life_rabbit(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_rabbit(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_rabbit(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_life_rabbit(1)",
+          "name": "Darting rabbit",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Common",
+          "isCustom": true,
+          "description": "A newly forged PvE battle entity.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 2,
+              "attack": 1,
+              "attackType": "None",
+              "speed": 1,
+              "armor": 0,
+              "health": 1,
+              "abilities": [
+                "Dodge"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1791886232237",
+      "name": "Soft patch of earth",
+      "description": "As you take another step on your path your foot sinks into a soft patch. Suddenly, you feel a small tremor and worms emerge.",
+      "manaCap": 12,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_earth_wiggly_worm(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_earth_wiggly_worm(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_earth_wiggly_worm(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_earth_wiggly_worm(1)",
+          "name": "Wiggly worm",
+          "splinter": "Earth",
+          "cardType": "Monster",
+          "rarity": "Common",
+          "isCustom": true,
+          "description": "A newly forged PvE battle entity.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 2,
+              "attack": 1,
+              "attackType": "Melee",
+              "speed": 1,
+              "armor": 0,
+              "health": 2,
+              "abilities": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1791884773037",
+      "name": "Swarming lights",
+      "description": "Strange small lights swarm from a nearby tree towards you.",
+      "manaCap": 12,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_fire_firefly(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_fire_firefly(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_fire_firefly(1)",
+          "name": "Firefly",
+          "splinter": "Fire",
+          "cardType": "Monster",
+          "rarity": "Common",
+          "isCustom": true,
+          "description": "A newly forged PvE battle entity.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 3,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 0,
+              "health": 1,
+              "abilities": [
+                "Reach"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1793288787725",
+      "name": "The burn-scarred pigs",
+      "description": "A group of burn-scarred pigs who somehow survived the collapse and burning of the stable are out for revenge.",
+      "manaCap": 25,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_life_burn_scarred_pig(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_burn_scarred_pig(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_burn_scarred_pig(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_burn_scarred_pig(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_life_burn_scarred_pig(1)",
+          "name": "Burn-scarred pig",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "These pigs show lots of scars and burns. And smell of bacon",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 4,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 0,
+              "health": 3,
+              "abilities": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1792484598313",
+      "name": "The god of pork",
+      "description": "A newly designed combat challenge for aspiring champions.",
+      "manaCap": 25,
+      "rulesets": [
+        "Noxious Fumes"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_fire_pig_servant(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_fire_pig_servant(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_fire_pig_servant(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_life_god_of_pork(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_fire_pig_servant(1)",
+          "name": "Pig servant",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "A lowly pig servant who's only purpose is to feed the god of pork.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 5,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 1,
+              "health": 4,
+              "abilities": []
+            }
+          ]
+        },
+        {
+          "id": "mon_life_god_of_pork(1)",
+          "name": "God of pork",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Legendary",
+          "isCustom": true,
+          "description": "An incredibly fat pig. It seems the other pigs are worshiping it as a deity, the god of pork.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 10,
+              "attack": 0,
+              "attackType": "None",
+              "speed": 1,
+              "armor": 0,
+              "health": 12,
+              "abilities": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1793013537839",
+      "name": "The guard hog in the barn",
+      "description": "This barn is guarded by a guard hog. Yes, not a dog.",
+      "manaCap": 25,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_life_guard_hog(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_life_guard_hog(1)",
+          "name": "Guard hog",
+          "splinter": "Life",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "You heard before of a pig that thinks its a dog. This one however is not so much interested in herding sheep as in ripping your throat out.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 6,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 3,
+              "armor": 1,
+              "health": 5,
+              "abilities": [
+                "Enrage"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1792483201211",
+      "name": "The pig butcher",
+      "description": "The pig butcher charges you, determined to, well, butcher you.",
+      "manaCap": 25,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_fire_pig_butcher(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_fire_pig_butcher(1)",
+          "name": "Pig butcher",
+          "splinter": "Fire",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "A large pig on its hind legs with large cleaver. Some wonder how a pig can hold a cleaver, those who fail to run discover what it can do with it.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 6,
+              "attack": 2,
+              "attackType": "Melee",
+              "speed": 2,
+              "armor": 0,
+              "health": 6,
+              "abilities": [
+                "Blast"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "campaignMana": true,
+  "inventory": [],
+  "startingMana": 0,
+  "items": [
+    {
+      "id": "legacy_item_0",
+      "name": "Homecoming pebble",
+      "description": "A simple pebble with the power to bring you back to Emor at any time. Not so simple after all.",
+      "parameters": {}
+    },
+    {
+      "id": "legacy_item_1",
+      "name": "Imagination",
+      "description": "The essence of imagination, valued by the denizens of this realm.",
+      "parameters": {}
+    },
+    {
+      "id": "legacy_item_2",
+      "name": "Bunny ears",
+      "description": "Why the earns stayed behind when you killed these rabbits, nobody knows.",
+      "parameters": {
+        "sellvalue": 1
+      }
+    },
+    {
+      "id": "legacy_item_3",
+      "name": "Toad warts",
+      "description": "I guess mana doesn't like warts.",
+      "parameters": {
+        "sellvalue": 1
+      }
+    },
+    {
+      "id": "legacy_item_4",
+      "name": "Critter claws",
+      "description": "The tiny sharp claws stayed behind.",
+      "parameters": {
+        "sellvalue": 1
+      }
+    },
+    {
+      "id": "legacy_item_5",
+      "name": "Luminous dust",
+      "description": "This strange dust stayed behind and keeps emitting a weak glow.",
+      "parameters": {
+        "sellvalue": 1
+      }
+    },
+    {
+      "id": "legacy_item_6",
+      "name": "Worm segment",
+      "description": "Why the rest of the worm disappeared and not this segment, who knows.",
+      "parameters": {
+        "sellvalue": 1
+      }
+    },
+    {
+      "id": "campaign_item_b64495c8-d738-4d7d-a5cb-fa067ed78cdd",
+      "name": "Molerat meat",
+      "description": "Some of the fleeting mana has coalesced into a heavy chunk of meat.",
+      "parameters": {
+        "sellvalue": 2
+      }
+    },
+    {
+      "id": "campaign_item_b3b488cb-5d1f-4afb-8e14-608f5e87764f",
+      "name": "Key to the main house",
+      "description": "The key to the abandoned farms main house.",
+      "parameters": {}
+    },
+    {
+      "id": "campaign_item_cf69212a-65f9-45e3-9040-bb2bde8ad712",
+      "name": "Farmer's trinket",
+      "description": "A small trinket with a small painting inside. You wonder how such a small painting can perfectly capture the idyllic farmstead the abandoned farm once was.",
+      "parameters": {}
+    }
+  ],
+  "unlocks": [
+    {
+      "id": "campaign_unlock_f27231eb-ad92-4950-ae8e-71e7e0b4654d",
+      "name": "Eggs collector defeated",
+      "description": "The eggs collector is dead, no more eggs will be collected for the tyrants."
+    },
+    {
+      "id": "campaign_unlock_c9fb45fa-459a-44e0-a3d9-114839bafcec",
+      "name": "Artist unlocked",
+      "description": ""
+    },
+    {
+      "id": "campaign_unlock_06b071fa-ea4c-4865-b88b-88564b3c3a47",
+      "name": "Architect unlocked",
+      "description": ""
+    },
+    {
+      "id": "campaign_unlock_83dddbb9-ac23-406c-b490-4acc5f46fab1",
+      "name": "Pig butcher defeated",
+      "description": "You defeated the pig butcher in the main house of the not so abandoned farm."
+    },
+    {
+      "id": "campaign_unlock_3ba1f729-d8bb-4bd9-9e6d-3f4d4d6f6a7b",
+      "name": "God of pork defeated",
+      "description": "It was a smelly and greasy affair, but it had to be done. Probably."
+    },
+    {
+      "id": "campaign_unlock_70260362-ee17-4655-b447-ba042bc18ddc",
+      "name": "Kill the eggs collector for the chickens",
+      "description": "None among the pigs is more hated among the chickens than the eggs collector."
+    },
+    {
+      "id": "campaign_unlock_c34337f0-7ef1-4a4c-a955-7041a3b02274",
+      "name": "Trader unlocked",
+      "description": "The trader buys and sells various objects for imagination."
+    },
+    {
+      "id": "campaign_unlock_2d20a3d3-6b90-4d3d-ad53-c87a554054a7",
+      "name": "Arrival of the trader",
+      "description": "A strange hoooded trader has arrived in Emor."
+    },
+    {
+      "id": "campaign_unlock_af0a528a-0e0d-4e09-81ee-1d22c68d8979",
+      "name": "Arrival of the architect",
+      "description": "A crystaline tower is slowly rising from the ground in the center of Emor."
+    },
+    {
+      "id": "campaign_unlock_75fafaee-8ff7-4d14-add0-1c843f65fb6d",
+      "name": "Stable burned down",
+      "description": "The stable was burned to the ground with most of the pigs still inside. An earie silence and the smell of bacon lingers around the ruins."
+    },
+    {
+      "id": "campaign_unlock_02b7cff0-078e-4257-9d9a-e83aac506c94",
+      "name": "The pig stable",
+      "description": "The stable has been taken by the pigs and is inhabited by dozens of them."
+    },
+    {
+      "id": "campaign_unlock_176796ec-73e7-40e2-a478-46d4ce777ba7",
+      "name": "Befriended the farm dog",
+      "description": "Having realized that you are not a pig the dog told you the history of the farm and revealed his plans for revenge."
+    },
+    {
+      "id": "campaign_unlock_be764a2c-7900-439a-bed3-d3e3feddfbc7",
+      "name": "Collapsed the stable",
+      "description": "You collapsed the stable as agreed, realizing the dog did not reveal his full plan to you."
+    },
+    {
+      "id": "campaign_unlock_3dec001b-5255-478a-9475-da6548c505f8",
+      "name": "A dog's vengeance",
+      "description": "The dog has avenged his master."
+    },
+    {
+      "id": "campaign_unlock_d63cebac-6e36-4d2e-8b32-a81b4c2d0cae",
+      "name": "The small lumbercamp",
+      "description": "A small lumbercamp where chopped trees were made into firewood for the winter."
+    },
+    {
+      "id": "campaign_unlock_e123d396-e469-4b50-bf3d-6dc225cd6aa4",
+      "name": "Discovered Alric spell",
+      "description": "You have discovered a spell to summon a stable collapsing storm. Very specific."
+    }
+  ],
+  "actions": [
+    {
+      "id": "campaign_action_activate_homecoming_pebble",
+      "name": "Activate Homecoming Pebble",
+      "description": "Spend all your mana to return to Emor.",
+      "unlockPreconditions": [
+        {
+          "id": "precondition_42710ae8-7a40-4e33-b2ba-e0f8c7422f0e",
+          "type": "has_item",
+          "item": "Homecoming pebble",
+          "quantity": 0
+        }
+      ],
+      "preconditions": [],
+      "effects": [
+        {
+          "id": "effect_homecoming_restore_mana",
+          "type": "set_mana_to_starting_mana"
+        },
+        {
+          "id": "effect_homecoming_return_to_emor",
+          "type": "go_to_node",
+          "nodeId": "node_emor_homecoming_pebble_return"
+        }
+      ]
+    },
+    {
+      "id": "campaign_action_754b7441-67b5-4f8d-bff2-ea85b82cf932",
+      "name": "Summon stable collapsing storm",
+      "description": "You learned an oddly specific spell which allows you to summon a storm which can collapse a stable.",
+      "unlockPreconditions": [
+        {
+          "id": "precondition_e78247ab-873b-4a2c-ac08-f08de006da0e",
+          "type": "has_unlock",
+          "unlockId": "campaign_unlock_e123d396-e469-4b50-bf3d-6dc225cd6aa4"
+        }
+      ],
+      "preconditions": [
+        {
+          "id": "precondition_ddaac218-fa47-4944-837a-e9b3410ec329",
+          "type": "has_mana",
+          "mana": 25
+        }
+      ],
+      "effects": []
+    }
+  ]
+}

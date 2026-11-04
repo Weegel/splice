@@ -18,7 +18,7 @@ import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { StorageService } from '../data/storage';
 import { getCampaignItems } from '../data/campaignItems';
 import { cleanCampaignInventoryItems, createCampaignCollection, createCampaignRun, getCampaignCollection, awardCampaignCard, reconcileCampaignRunStartingConfiguration } from '../data/campaignCollection';
-import { applyCampaignBattleOutcomeEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignBuyOffer, canTradeCampaignShopOffer, getCampaignBuyOfferPayout, tradeCampaignBuyOffer, tradeCampaignShopOffer, executeCampaignAction, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from '../data/campaignEffects';
+import { applyCampaignBattleOutcomeEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignBuyOffer, canTradeCampaignShopOffer, getAvailableCampaignActions, getCampaignBuyOfferPayout, tradeCampaignBuyOffer, tradeCampaignShopOffer, executeCampaignAction, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from '../data/campaignEffects';
 import { BattleEngine } from '../engine/battleEngine';
 import { BattlePreparation } from './BattlePreparation';
 import { BattleViewer } from './BattleViewer';
@@ -160,8 +160,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
     `${card.name} ${card.splinter} ${card.rarity}`.toLowerCase().includes(collectionSearch.trim().toLowerCase())
   );
   const campaignItems = getCampaignItems(campaign);
-  const actionIds = runState.availableCampaignActionIds ?? (campaign.actions || []).map((action) => action.id);
-  const availableActions = (campaign.actions || []).filter((action) => actionIds.includes(action.id));
+  const availableActions = getAvailableCampaignActions(runState, campaign);
   const availableShopOffers = currentNode.type === 'shop'
     ? currentNode.offers.filter((offer) => meetsCampaignPreconditions(runState, offer.preconditions))
     : [];
@@ -181,6 +180,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
       if (precondition.type === 'has_unlock') return `Requires unlock: ${campaign.unlocks?.find((unlock) => unlock.id === precondition.unlockId)?.name || 'Unavailable unlock'}`;
       if (precondition.type === 'has_not_unlock') return `Requires unlock not received: ${campaign.unlocks?.find((unlock) => unlock.id === precondition.unlockId)?.name || 'Unavailable unlock'}`;
       if (precondition.type === 'has_item') return `Requires ${precondition.quantity === 0 ? 'no' : `at least ${precondition.quantity}`} ${campaignItems.find((item) => item.name.toLowerCase() === precondition.item.toLowerCase())?.name || 'Unavailable item'}`;
+      if (precondition.type === 'has_mana') return `Requires at least ${precondition.mana} mana`;
       const cardName = campaignCards.find((card) => card.id === precondition.cardId)?.name || 'Unavailable card';
       return precondition.type === 'card_unlocked' ? `Requires card unlocked: ${cardName}` : `Requires card not unlocked: ${cardName}`;
     }).join('; ');

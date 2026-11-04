@@ -1,0 +1,23 @@
+{
+  "id": "mon_life_eggbert_the_eternal(1)",
+  "name": "Eggbert the eternal",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Legendary",
+  "isCustom": true,
+  "description": "Eggbert the eternal is a legend among chickens. A legend, that may be summoned by those who earned their favor.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 3,
+      "attack": 2,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 1,
+      "abilities": [
+        "Charge"
+      ]
+    }
+  ]
+}

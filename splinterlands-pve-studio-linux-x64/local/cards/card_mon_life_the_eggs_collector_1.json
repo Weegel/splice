@@ -1,0 +1,23 @@
+{
+  "id": "mon_life_the_eggs_collector(1)",
+  "name": "The eggs collector",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "A fat pig with a fancy hat on its head a big pouch for collecting the eggs. A few say he is just as much a victim of the tyranny of the state as everyone else. Those clearly haven't seen him gleefully doing his job, eggs collecting at every opportunity.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 5,
+      "attack": 1,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 4,
+      "abilities": [
+        "Opportunity"
+      ]
+    }
+  ]
+}

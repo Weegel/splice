@@ -1,0 +1,62 @@
+{
+  "id": "pve_custom_1791811624342",
+  "name": "Rowdy rabbits",
+  "description": "You come across rabbits with strangely elongated front teeth.",
+  "manaCap": 12,
+  "rulesets": [
+    "Standard"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": null,
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "mon_life_rabbit(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_life_rabbit(1)",
+        "level": 1
+      },
+      {
+        "cardId": "mon_life_rabbit(1)",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "mon_life_rabbit(1)",
+      "name": "Darting rabbit",
+      "splinter": "Life",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 2,
+          "attack": 1,
+          "attackType": "None",
+          "speed": 1,
+          "armor": 0,
+          "health": 1,
+          "abilities": [
+            "Dodge"
+          ]
+        }
+      ]
+    }
+  ]
+}

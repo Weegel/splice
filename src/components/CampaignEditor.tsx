@@ -26,6 +26,7 @@ import { CampaignPreconditionsEditor } from './CampaignPreconditionsEditor';
 import { CampaignItemSelect } from './CampaignItemSelect';
 import { CampaignNodePicker } from './CampaignNodePicker';
 import { getCampaignItems, saveCampaignItem } from '../data/campaignItems';
+import { renameCampaignNode } from '../data/campaignNodes';
 import {
   BookOpen,
   Plus,
@@ -52,6 +53,7 @@ import {
   MapPin,
   Settings,
   Package,
+  Search,
   Shuffle,
   Store,
 } from 'lucide-react';
@@ -131,6 +133,9 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
   const [editingCampaign, setEditingCampaign] = useState<CampaignDefinition | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showEncounterGraph, setShowEncounterGraph] = useState(false);
+  const [nodeSearch, setNodeSearch] = useState('');
+  const [nodeTypeFilter, setNodeTypeFilter] = useState<CampaignNodeType | 'all'>('all');
+  const [isAddNodeMenuOpen, setIsAddNodeMenuOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [autosaveStatus, setAutosaveStatus] = useState<'saving' | 'saved' | 'error'>('saved');
   const pendingCampaign = useRef<CampaignDefinition | null>(null);
@@ -600,6 +605,12 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
   };
 
   const currentNode = editingCampaign && selectedNodeId ? editingCampaign.nodes[selectedNodeId] : null;
+  const campaignNodes = editingCampaign ? Object.values(editingCampaign.nodes) : [];
+  const normalizedNodeSearch = nodeSearch.trim().toLowerCase();
+  const filteredCampaignNodes = campaignNodes.filter((node) =>
+    (nodeTypeFilter === 'all' || node.type === nodeTypeFilter) &&
+    (!normalizedNodeSearch || `${node.title} ${node.id} ${node.type} ${NODE_TYPE_META[node.type].label}`.toLowerCase().includes(normalizedNodeSearch))
+  );
 
   return (
     <div className="space-y-6">
@@ -1002,66 +1013,74 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                       Campaign Nodes ({Object.keys(editingCampaign.nodes).length})
                     </h4>
                   </div>
-                  <button type="button" onClick={() => setShowEncounterGraph(true)} aria-haspopup="dialog" className="mb-3 flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs text-amber-200 hover:border-amber-500">
-                    <GitFork className="h-4 w-4" /> Show Encounter Graph
-                  </button>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => setShowEncounterGraph(true)} aria-haspopup="dialog" className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs text-amber-200 hover:border-amber-500">
+                      <GitFork className="h-4 w-4" /> Show Encounter Graph
+                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddNodeMenuOpen((open) => !open)}
+                        aria-expanded={isAddNodeMenuOpen}
+                        aria-haspopup="menu"
+                        className="flex items-center gap-2 rounded-lg border border-amber-600/60 bg-amber-950/50 px-3 py-2 text-xs font-semibold text-amber-200 hover:border-amber-400"
+                      >
+                        <Plus className="h-4 w-4" /> Add node
+                      </button>
+                      {isAddNodeMenuOpen && (
+                        <div role="menu" aria-label="Add campaign node" className="absolute left-0 top-full z-20 mt-1 grid w-64 grid-cols-2 gap-1 rounded-lg border border-slate-700 bg-slate-950 p-2 shadow-xl">
+                          {(Object.keys(NODE_TYPE_META) as CampaignNodeType[]).map((type) => {
+                            const meta = NODE_TYPE_META[type];
+                            const Icon = meta.icon;
+                            return (
+                              <button
+                                key={type}
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setIsAddNodeMenuOpen(false);
+                                  handleAddNode(type);
+                                }}
+                                className={`flex items-center gap-2 rounded-md border px-2 py-2 text-left text-xs font-medium hover:brightness-125 ${meta.bg} ${meta.border} ${meta.color}`}
+                              >
+                                <Icon className="h-4 w-4 shrink-0" />
+                                <span>{meta.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                  {/* Add Node Tool Palette */}
-                  <div className="grid grid-cols-4 gap-1 mb-3 [&>button]:min-w-0 [&>button]:p-1 [&>button]:text-[10px] [&>button]:gap-0.5 [&>button>svg]:shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('text')}
-                      className="p-1.5 bg-sky-950/80 hover:bg-sky-900 border border-sky-600/50 text-sky-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
+                  <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <label className="relative block">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="search"
+                        value={nodeSearch}
+                        onChange={(event) => setNodeSearch(event.target.value)}
+                        placeholder="Search nodes by title or ID"
+                        aria-label="Search campaign nodes"
+                        className="w-full rounded-lg border border-slate-700 bg-slate-900 py-2 pl-8 pr-3 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
+                      />
+                    </label>
+                    <select
+                      value={nodeTypeFilter}
+                      onChange={(event) => setNodeTypeFilter(event.target.value as CampaignNodeType | 'all')}
+                      aria-label="Filter nodes by type"
+                      className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none"
                     >
-                      <Plus className="w-3 h-3" /> Story
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('decision')}
-                      className="p-1.5 bg-amber-950/80 hover:bg-amber-900 border border-amber-600/50 text-amber-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Plus className="w-3 h-3" /> Choice
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('multi')}
-                      className="p-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-600/50 text-cyan-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Shuffle className="w-3 h-3" /> Multi
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('hub')}
-                      className="p-1.5 bg-teal-950/80 hover:bg-teal-900 border border-teal-600/50 text-teal-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <MapPin className="w-3 h-3" /> Hub
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('shop')}
-                      className="p-1.5 bg-lime-950/80 hover:bg-lime-900 border border-lime-600/50 text-lime-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Store className="w-3 h-3" /> Shop
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('battle')}
-                      className="p-1.5 bg-rose-950/80 hover:bg-rose-900 border border-rose-600/50 text-rose-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Plus className="w-3 h-3" /> Battle
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNode('end')}
-                      className="p-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/50 text-emerald-300 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Plus className="w-3 h-3" /> End
-                    </button>
+                      <option value="all">All types</option>
+                      {(Object.keys(NODE_TYPE_META) as CampaignNodeType[]).map((type) => (
+                        <option key={type} value={type}>{NODE_TYPE_META[type].label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Nodes List */}
                   <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                    {Object.values(editingCampaign.nodes).map((node) => {
+                    {filteredCampaignNodes.map((node) => {
                       const isSelected = node.id === selectedNodeId;
                       const isStart = node.id === editingCampaign.startNodeId;
                       const meta = NODE_TYPE_META[node.type];
@@ -1114,6 +1133,11 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                         </div>
                       );
                     })}
+                    {filteredCampaignNodes.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-800 px-3 py-6 text-center text-xs text-slate-500">
+                        No nodes match the current search and type filter.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1152,7 +1176,11 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                       <input
                         type="text"
                         value={currentNode.title}
-                        onChange={(e) => handleUpdateNode({ ...currentNode, title: e.target.value })}
+                        onChange={(event) => {
+                          const renamed = renameCampaignNode(editingCampaign, currentNode.id, event.target.value);
+                          setEditingCampaign(renamed.campaign);
+                          setSelectedNodeId(renamed.nodeId);
+                        }}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-bold text-slate-100 focus:outline-none focus:border-amber-500"
                       />
                     </div>
@@ -1365,13 +1393,23 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                               </div>
                               <CampaignPreconditionsEditor preconditions={route.preconditions || []} unlocks={editingCampaign.unlocks || []} cards={editorCards} items={campaignItems}
                                 onChange={(preconditions) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((entry) => entry.id === route.id ? { ...entry, preconditions: preconditions.length ? preconditions : undefined } : entry) })} />
-                              <button
-                                type="button"
-                                onClick={() => createAndLinkNode('battle', (newId) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((entry) => entry.id === route.id ? { ...entry, nextNodeId: newId } : entry) }))}
-                                className="flex items-center gap-1 text-xs text-rose-300"
-                              >
-                                <Plus className="w-3.5 h-3.5" /> Create & Link Battle
-                              </button>
+                              <div className="flex flex-wrap items-center gap-1 border-t border-slate-800/80 pt-1.5">
+                                <span className="mr-0.5 text-[10px] font-semibold text-slate-400">Create & Link:</span>
+                                {(Object.keys(NODE_TYPE_META) as CampaignNodeType[]).map((type) => {
+                                  const meta = NODE_TYPE_META[type];
+                                  const Icon = meta.icon;
+                                  return (
+                                    <button
+                                      key={type}
+                                      type="button"
+                                      onClick={() => createAndLinkNode(type, (newId) => handleUpdateNode({ ...currentNode, choices: currentNode.choices.map((entry) => entry.id === route.id ? { ...entry, nextNodeId: newId } : entry) }))}
+                                      className={`flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold hover:brightness-125 ${meta.bg} ${meta.border} ${meta.color}`}
+                                    >
+                                      <Icon className="h-3 w-3 shrink-0" /> {meta.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </section>
                           );
                         })}
@@ -1896,6 +1934,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
               ? current.unlocks.map((entry) => entry.id === unlock.id ? unlock : entry)
               : [...(current.unlocks || []), unlock],
           } : current)}
+              onDelete={(unlockId) => setEditingCampaign((current) => current ? { ...current, unlocks: (current.unlocks || []).filter((unlock) => unlock.id !== unlockId) } : current)}
           onClose={() => { setIsCampaignUnlocksOpen(false); campaignUnlocksTrigger.current?.focus(); }} />
       )}
       {editingCampaign && isCampaignActionsOpen && (
@@ -1912,6 +1951,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
       {editingCampaign && isCampaignItemsOpen && (
         <CampaignItemsModal items={campaignItems} autosaveStatus={autosaveStatus}
           onSave={(item) => setEditingCampaign((current) => current ? saveCampaignItem(current, item) : current)}
+          onDelete={(itemId) => setEditingCampaign((current) => current ? { ...current, items: getCampaignItems(current).filter((item) => item.id !== itemId) } : current)}
           onClose={() => { setIsCampaignItemsOpen(false); campaignItemsTrigger.current?.focus(); }} />
       )}
       {editingCampaign && isInventoryOpen && (

@@ -1,0 +1,129 @@
+{
+  "id": "pve_custom_1789642245522",
+  "name": "Custom PvE Gauntlet",
+  "description": "A newly designed combat challenge for aspiring champions.",
+  "difficulty": "Silver",
+  "manaCap": 25,
+  "rulesets": [
+    "Earthquake",
+    "Target Practice"
+  ],
+  "allowedSplinters": [
+    "Fire",
+    "Water",
+    "Earth",
+    "Life",
+    "Death",
+    "Dragon",
+    "Neutral"
+  ],
+  "isCustom": true,
+  "enemyTeam": {
+    "summonerId": "sum_fire_malric",
+    "summonerLevel": 1,
+    "monsters": [
+      {
+        "cardId": "custom_monster_1789641897615",
+        "level": 1
+      },
+      {
+        "cardId": "mon_fire_living_lava",
+        "level": 1
+      }
+    ]
+  },
+  "embeddedCards": [
+    {
+      "id": "sum_fire_malric",
+      "name": "Malric Inferno",
+      "splinter": "Fire",
+      "cardType": "Summoner",
+      "rarity": "Rare",
+      "description": "Fire Summoner granting +1 Melee Attack to all friendly monsters.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 3,
+          "attack": 0,
+          "attackType": "None",
+          "speed": 0,
+          "armor": 0,
+          "health": 0,
+          "abilities": []
+        }
+      ],
+      "summonerBuffs": {
+        "melee": 1
+      },
+      "imageUrl": "https://images.hive.blog/u/splinterlands/avatar/small"
+    },
+    {
+      "id": "mon_fire_living_lava",
+      "name": "Living Lava",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Common",
+      "description": "A colossal magma beast with extreme durability against physical attacks.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 7,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 2,
+          "health": 6,
+          "abilities": [
+            "Shield"
+          ]
+        },
+        {
+          "level": 2,
+          "mana": 7,
+          "attack": 3,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 2,
+          "health": 7,
+          "abilities": [
+            "Shield"
+          ]
+        },
+        {
+          "level": 3,
+          "mana": 7,
+          "attack": 4,
+          "attackType": "Melee",
+          "speed": 1,
+          "armor": 2,
+          "health": 7,
+          "abilities": [
+            "Shield",
+            "Rust"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "custom_monster_1789641897615",
+      "name": "now it works",
+      "splinter": "Fire",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "A newly forged PvE battle entity.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 4,
+          "attack": 12,
+          "attackType": "Melee",
+          "speed": 2,
+          "armor": 1,
+          "health": 5,
+          "abilities": []
+        }
+      ]
+    }
+  ]
+}

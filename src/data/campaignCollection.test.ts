@@ -1,5 +1,5 @@
 import { awardCampaignCard, cleanCampaignInventoryItems, createCampaignCollection, createCampaignRun, getCampaignCollection, reconcileCampaignRunStartingConfiguration } from './campaignCollection';
-import { CampaignActionDefinition, CampaignDefinition, CampaignItemDefinition, CampaignItemParameter, CampaignPrecondition, CampaignShopOffer } from '../types/campaign';
+import { CampaignActionDefinition, CampaignDefinition, CampaignItemDefinition, CampaignItemParameter, CampaignPrecondition, CampaignRunState, CampaignShopOffer } from '../types/campaign';
 import { CardDefinition } from '../types/card';
 import { PlayerCollectionState } from '../services/splinterlandsApi';
 import { createElement } from 'react';
@@ -8,12 +8,15 @@ import { BattlePreparation } from '../components/BattlePreparation';
 import { CampaignPlayer } from '../components/CampaignPlayer';
 import { CampaignShopEditor } from '../components/CampaignShopEditor';
 import { StorageService } from './storage';
+import { LocalWorkspaceService } from '../services/localWorkspace';
 import { getCampaignItems, parseCampaignItemParameters, saveCampaignItem } from './campaignItems';
+import { renameCampaignNode } from './campaignNodes';
 import { CampaignItemSelect } from '../components/CampaignItemSelect';
+import { CampaignItemsModal } from '../components/CampaignItemsModal';
 import { CampaignEffectsEditor } from '../components/CampaignEffectsEditor';
 import { CampaignUnlocksModal } from '../components/CampaignUnlocksModal';
 import { CampaignPreconditionsEditor } from '../components/CampaignPreconditionsEditor';
-import { applyCampaignBattleOutcomeEffects, applyCampaignEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignBuyOffer, canTradeCampaignShopOffer, getCampaignBuyOfferPayout, tradeCampaignBuyOffer, tradeCampaignShopOffer, executeCampaignAction, getCampaignPlayerCardIds, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from './campaignEffects';
+import { applyCampaignBattleOutcomeEffects, applyCampaignEffects, applyCampaignEffectSource, applyCampaignNodeEffects, canTradeCampaignBuyOffer, canTradeCampaignShopOffer, getAvailableCampaignActions, getCampaignBuyOfferPayout, tradeCampaignBuyOffer, tradeCampaignShopOffer, executeCampaignAction, getCampaignPlayerCardIds, getCampaignTeamManaCost, meetsCampaignPreconditions, normalizeCampaignInventory, recoverCampaignBattleMana, resolveCampaignMultiNodes, spendCampaignMana } from './campaignEffects';
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -33,6 +36,52 @@ const campaign: CampaignDefinition = {
   collectionSource: 'custom',
   startingCollection: [{ cardId: summoner.id, maxLevel: 2 }, { cardId: monster.id, maxLevel: 1 }],
 };
+
+const nodeNamingCampaign: CampaignDefinition = {
+  ...campaign,
+  actions: [{ id: 'return', name: 'Return', preconditions: [], effects: [{ id: 'jump', type: 'go_to_node', nodeId: 'start' }] }],
+  nodes: {
+    start: { id: 'start', type: 'text', title: 'Start', content: 'start', nextNodeId: 'start', effects: [{ id: 'jump', type: 'go_to_node', nodeId: 'start' }] },
+    node_text_abandoned_farm_stable: { id: 'node_text_abandoned_farm_stable', type: 'end', title: 'Occupied name', message: '', outcome: 'neutral' },
+    decision: { id: 'decision', type: 'decision', title: 'Decision', prompt: '', choices: [{ id: 'choice', text: 'start', nextNodeId: 'start' }] },
+    multi: { id: 'multi', type: 'multi', title: 'Multi', choices: [{ id: 'route', nextNodeId: 'start', probability: 100 }] },
+    hub: { id: 'hub', type: 'hub', title: 'Hub', prompt: '', choices: [{ id: 'poi', text: 'Start', nextNodeId: 'start', effects: [{ id: 'jump', type: 'go_to_node', nodeId: 'start' }] }] },
+    battle: {
+      id: 'battle', type: 'battle', title: 'Battle', onVictoryNodeId: 'start', onDefeatNodeId: 'start', onDrawNodeId: 'start',
+      victoryEffects: [{ id: 'win', type: 'go_to_node', nodeId: 'start' }], defeatEffects: [{ id: 'lose', type: 'go_to_node', nodeId: 'start' }],
+    },
+    shop: { id: 'shop', type: 'shop', title: 'Shop', nextNodeId: 'start', offers: [{ id: 'offer', costs: [], effects: [{ id: 'jump', type: 'go_to_node', nodeId: 'start' }] }] },
+  },
+};
+const nodeNamingSnapshot = JSON.stringify(nodeNamingCampaign);
+const renamedNodeResult = renameCampaignNode(nodeNamingCampaign, 'start', 'Abandoned Farm Stable');
+const namedCampaign = renamedNodeResult.campaign;
+const namedNodeId = renamedNodeResult.nodeId;
+assert(namedNodeId === 'node_text_abandoned_farm_stable_2' && !namedCampaign.nodes.start && namedCampaign.nodes[namedNodeId].id === namedNodeId, 'Title edits generate node_type_name IDs with collision-safe suffixes and replace the old node key');
+assert(namedCampaign.startNodeId === namedNodeId && namedCampaign.nodes[namedNodeId].type === 'text' && namedCampaign.nodes[namedNodeId].nextNodeId === namedNodeId, 'Node renames update the campaign start and self-referencing transitions');
+assert(['decision', 'multi', 'hub'].every((key) => {
+  const node = namedCampaign.nodes[key];
+  return (node.type === 'decision' || node.type === 'multi' || node.type === 'hub') && node.choices[0].nextNodeId === namedNodeId;
+}), 'Node renames update decision, weighted selector, and hub destinations');
+const namedBattle = namedCampaign.nodes.battle;
+assert(namedBattle.type === 'battle' && [namedBattle.onVictoryNodeId, namedBattle.onDefeatNodeId, namedBattle.onDrawNodeId].every((target) => target === namedNodeId), 'Node renames update all battle outcome destinations');
+const renamedJumpEffects = [
+  namedCampaign.nodes[namedNodeId].effects?.[0],
+  namedCampaign.actions?.[0].effects[0],
+  namedBattle.type === 'battle' ? namedBattle.victoryEffects?.[0] : undefined,
+  namedBattle.type === 'battle' ? namedBattle.defeatEffects?.[0] : undefined,
+  namedCampaign.nodes.hub.type === 'hub' ? namedCampaign.nodes.hub.choices[0].effects?.[0] : undefined,
+  namedCampaign.nodes.shop.type === 'shop' ? namedCampaign.nodes.shop.offers[0].effects[0] : undefined,
+];
+assert(renamedJumpEffects.every((effect) => effect?.type === 'go_to_node' && effect.nodeId === namedNodeId), 'Node renames update navigation effects in nodes, actions, battle outcomes, hub events, and shop offers');
+assert(namedCampaign.nodes.shop.type === 'shop' && namedCampaign.nodes.shop.nextNodeId === namedNodeId, 'Node renames update shop exit destinations');
+assert(namedCampaign.nodes[namedNodeId].type === 'text' && namedCampaign.nodes[namedNodeId].content === 'start' && namedCampaign.nodes.decision.type === 'decision' && namedCampaign.nodes.decision.choices[0].text === 'start', 'Node renames leave matching narrative and choice text untouched');
+assert(JSON.stringify(nodeNamingCampaign) === nodeNamingSnapshot, 'Automatic node naming does not mutate the source campaign');
+assert(renameCampaignNode(namedCampaign, namedNodeId, 'Abandoned Farm Stable').nodeId === namedNodeId, 'Duplicate-title suffixes remain stable during repeated edits');
+assert(renameCampaignNode(campaign, 'start', '  Café / Farm -- Stable! ').nodeId === 'node_text_cafe_farm_stable', 'Automatic node naming normalizes accents, whitespace, and punctuation');
+assert(Object.values(nodeNamingCampaign.nodes).every((node) => renameCampaignNode(nodeNamingCampaign, node.id, 'New Location').nodeId === `node_${node.type}_new_location`), 'Every node type is included between the node prefix and normalized title');
+assert(renameCampaignNode(campaign, 'start', '  !!! ').nodeId === 'start' && renameCampaignNode(campaign, 'start', '').campaign.nodes.start.title === '', 'Blank or punctuation-only titles retain the existing ID while editing');
+assert(renameCampaignNode(campaign, 'missing', 'New title').campaign === campaign, 'Renaming a missing node leaves the campaign unchanged');
 
 const legacyItemCampaign: CampaignDefinition = {
   ...campaign,
@@ -77,6 +126,7 @@ assert(JSON.parse(JSON.stringify(unlockedRun)).campaignUnlockIds.join(',') === '
 assert(!createCampaignRun(campaign, initial).campaignUnlockIds?.length, 'Restarting a campaign clears its unlock progress');
 const homecomingAction: CampaignActionDefinition = {
   id: 'activate_homecoming_pebble', name: 'Activate Homecoming Pebble',
+  unlockPreconditions: [{ id: 'requires_return_key', type: 'has_unlock', unlockId: 'return_key' }],
   preconditions: [{ id: 'requires_pebble', type: 'has_item', item: 'Homecoming pebble', quantity: 1 }],
   effects: [
     { id: 'restore_mana', type: 'set_mana_to_starting_mana' },
@@ -92,10 +142,13 @@ const homecomingCampaign: CampaignDefinition = {
   },
 };
 const homecomingRun = createCampaignRun(homecomingCampaign, initial);
-const pebbleRun = { ...homecomingRun, mana: 2, inventory: [{ id: 'pebble', object: 'homecoming pebble', quantity: 1 }] };
+const pebbleRun = { ...homecomingRun, mana: 2, campaignUnlockIds: ['return_key'], inventory: [{ id: 'pebble', object: 'homecoming pebble', quantity: 1 }] };
 const returnedRun = executeCampaignAction(pebbleRun, homecomingAction, homecomingCampaign, cards);
 assert(returnedRun.mana === 12 && returnedRun.currentNodeId === 'return_to_emor' && returnedRun.visitedNodeIds[returnedRun.visitedNodeIds.length - 1] === 'return_to_emor', 'Homecoming action restores starting mana and navigates to its return text node');
-assert(executeCampaignAction(homecomingRun, homecomingAction, homecomingCampaign, cards) === homecomingRun, 'Homecoming action cannot run without its item precondition');
+const unlockedWithoutPebble = { ...homecomingRun, campaignUnlockIds: ['return_key'] };
+assert(executeCampaignAction(unlockedWithoutPebble, homecomingAction, homecomingCampaign, cards) === unlockedWithoutPebble, 'Homecoming action cannot run without its item use precondition');
+assert(getAvailableCampaignActions(homecomingRun, homecomingCampaign).length === 0, 'An action stays hidden until its unlock preconditions pass');
+assert(getAvailableCampaignActions(unlockedWithoutPebble, homecomingCampaign).length === 1, 'An action stays visible when unlocked even if its use preconditions fail');
 const grantedActionRun = applyCampaignEffects({ ...homecomingRun, availableCampaignActionIds: [] }, [{ id: 'grant_homecoming', type: 'add_campaign_action', actionId: homecomingAction.id }], cards);
 assert(grantedActionRun.availableCampaignActionIds?.includes(homecomingAction.id) === true, 'Campaign effects can grant an action');
 const removedActionRun = applyCampaignEffects(grantedActionRun, [{ id: 'remove_homecoming', type: 'remove_campaign_action', actionId: homecomingAction.id }], cards);
@@ -118,6 +171,16 @@ assert(!meetsCampaignPreconditions(itemPreconditionRun, [{ ...hasWormSegments, q
 assert(!meetsCampaignPreconditions(unlockRun, [hasWormSegments]) && !meetsCampaignPreconditions(unlockRun, [{ ...hasWormSegments, item: '' }]), 'Missing items and blank Has Item selections fail positive requirements');
 assert(!meetsCampaignPreconditions(itemPreconditionRun, [{ ...hasWormSegments, quantity: -1 }]) && !meetsCampaignPreconditions(itemPreconditionRun, [{ ...hasWormSegments, quantity: 1.5 }]), 'Has Item rejects negative and fractional quantities');
 assert(meetsCampaignPreconditions({ ...itemPreconditionRun, campaignUnlockIds: ['battle_x'] }, [hasWormSegments, { id: 'requires_battle', type: 'has_unlock', unlockId: 'battle_x' }]), 'Has Item combines with other preconditions using AND semantics');
+const hasManaCondition: CampaignPrecondition = { id: 'requires_mana', type: 'has_mana', mana: 10 };
+assert(meetsCampaignPreconditions({ ...unlockRun, mana: 10 }, [hasManaCondition]) && meetsCampaignPreconditions({ ...unlockRun, mana: 11 }, [hasManaCondition]) && !meetsCampaignPreconditions({ ...unlockRun, mana: 9 }, [hasManaCondition]), 'Has mana passes at or above the minimum and fails below it');
+assert(!meetsCampaignPreconditions({ ...unlockRun, mana: undefined, startingMana: 100 }, [hasManaCondition]) && meetsCampaignPreconditions({ ...unlockRun, mana: undefined }, [{ ...hasManaCondition, mana: 0 }]), 'Has mana uses current mana, treating missing balances as zero rather than starting mana');
+assert([-1, 1.5, NaN, Infinity].every((mana) => !meetsCampaignPreconditions({ ...unlockRun, mana: 100 }, [{ ...hasManaCondition, mana }])) && !meetsCampaignPreconditions({ ...unlockRun, mana: NaN }, [hasManaCondition]) && !meetsCampaignPreconditions({ ...unlockRun, mana: Infinity }, [hasManaCondition]), 'Has mana rejects invalid thresholds and non-finite balances');
+const manaConditionRun = { ...itemPreconditionRun, mana: 10 };
+assert(meetsCampaignPreconditions(manaConditionRun, [hasManaCondition, hasWormSegments]) && !meetsCampaignPreconditions({ ...manaConditionRun, mana: 9 }, [hasManaCondition, hasWormSegments]) && !meetsCampaignPreconditions({ ...manaConditionRun, inventory: [] }, [hasManaCondition, hasWormSegments]) && manaConditionRun.mana === 10, 'Has mana combines with other requirements using AND semantics without spending mana');
+const manaConditionMarkup = renderToStaticMarkup(createElement(CampaignPreconditionsEditor, {
+  preconditions: [hasManaCondition], unlocks: [], cards, items: legacyItems, onChange: () => {},
+}));
+assert(manaConditionMarkup.includes('Has mana') && manaConditionMarkup.includes('Precondition 1 minimum mana') && manaConditionMarkup.includes('type="number"') && manaConditionMarkup.includes('value="10"'), 'Has mana editor offers the precondition and a numeric minimum-mana input');
 const cardUnlockedCondition: CampaignPrecondition = { id: 'requires_card', type: 'card_unlocked', cardId: reward.id };
 const cardNotUnlockedCondition: CampaignPrecondition = { id: 'requires_no_card', type: 'card_not_unlocked', cardId: reward.id };
 const cardUnlockedRun = awardCampaignCard(unlockRun, reward);
@@ -151,9 +214,13 @@ const unlockEditorMarkup = renderToStaticMarkup(createElement(CampaignEffectsEdi
 }));
 assert(unlockEditorMarkup.includes('value="campaignunlock"') && unlockEditorMarkup.includes('Beat battle X') && unlockEditorMarkup.includes('Upgraded mana spring') && unlockEditorMarkup.includes('Select campaign unlock') && !unlockEditorMarkup.includes('type="checkbox"'), 'Campaign unlock effects select named definitions using dropdowns');
 const unlockModalMarkup = renderToStaticMarkup(createElement(CampaignUnlocksModal, {
-  unlocks: unlockCampaign.unlocks!, autosaveStatus: 'saved', onSave: () => {}, onClose: () => {},
+  unlocks: unlockCampaign.unlocks!, autosaveStatus: 'saved', onSave: () => {}, onDelete: () => {}, onClose: () => {},
 }));
-assert(unlockModalMarkup.includes('Campaign Unlocks (2)') && unlockModalMarkup.includes('Beat battle X') && unlockModalMarkup.includes('Defeat the forest guardian.') && unlockModalMarkup.includes('All changes saved'), 'The unlock modal lists definitions, displays details, and reports autosave status');
+assert(unlockModalMarkup.includes('Campaign Unlocks (2)') && unlockModalMarkup.includes('Beat battle X') && unlockModalMarkup.includes('Defeat the forest guardian.') && unlockModalMarkup.includes('Delete Beat battle X') && unlockModalMarkup.includes('All changes saved'), 'The unlock modal lists, describes, and can delete unlocks');
+const campaignItemsModalMarkup = renderToStaticMarkup(createElement(CampaignItemsModal, {
+  items: legacyItems, autosaveStatus: 'saved', onSave: () => {}, onDelete: () => {}, onClose: () => {},
+}));
+assert(campaignItemsModalMarkup.includes('Campaign Specific Items (4)') && campaignItemsModalMarkup.includes('Delete Ore') && campaignItemsModalMarkup.includes('All changes saved'), 'The campaign item modal lists items and provides delete controls');
 const unlockShopOffer: CampaignShopOffer = { id: 'unlock_spring', costs: [{ object: 'Ore', quantity: 1 }], effects: [{ id: 'grant_spring', type: 'campaignunlock', unlockIds: ['mana_spring'] }] };
 const unlockShopRun = { ...unlockRun, inventory: [{ id: 'ore', object: 'Ore', quantity: 2 }] };
 const unlockedShopRun = tradeCampaignShopOffer(unlockShopRun, unlockShopOffer, cards);
@@ -473,7 +540,24 @@ Object.defineProperty(globalThis, 'localStorage', {
     get length() { return storedValues.size; },
   },
 });
+const originalWriteCampaignRuns = LocalWorkspaceService.writeCampaignRuns;
+const persistedRuns: Record<string, CampaignRunState>[] = [];
+LocalWorkspaceService.writeCampaignRuns = async (runs) => {
+  persistedRuns.push(JSON.parse(JSON.stringify(runs)));
+  return true;
+};
 try {
+  StorageService.saveCampaignRun(syncedRun);
+  assert(persistedRuns[0][syncedRun.campaignId].currentNodeId === syncedRun.currentNodeId, 'Saving campaign progress also writes its complete run to disk');
+  storedValues.delete('splinter_campaign_runs');
+  StorageService.hydrateCampaignRuns(persistedRuns[0]);
+  assert(JSON.stringify(StorageService.getCampaignRun(syncedRun.campaignId)) === JSON.stringify(syncedRun), 'Campaign progress restores from disk into an empty browser store');
+  StorageService.saveCampaignRun({ ...syncedRun, campaignId: 'second_campaign' });
+  StorageService.deleteCampaignRun(syncedRun.campaignId);
+  const resetRuns = persistedRuns[persistedRuns.length - 1];
+  assert(!resetRuns[syncedRun.campaignId] && Boolean(resetRuns.second_campaign), 'Resetting progress updates disk without deleting other campaigns');
+  StorageService.hydrateCampaignRuns({});
+  assert(Object.keys(StorageService.getCampaignRuns()).length === 0, 'An empty disk progress file clears stale browser campaign saves');
   const legacyEmorCampaign: CampaignDefinition = { ...campaign, id: 'campaign_custom_1791371731769', name: 'The splintered paths of Emor' };
   const canonicalEmorCampaign: CampaignDefinition = { ...legacyEmorCampaign, id: 'campaign_splintered_paths_of_emor' };
   assert(StorageService.importCampaignsJson(JSON.stringify(legacyEmorCampaign)).success, 'Legacy Emor campaign IDs can be loaded');
@@ -633,6 +717,7 @@ try {
   StorageService.saveCampaignRun(visitedHubRun);
   assert(renderHub().includes('Visited'), 'Resuming a hub preserves point of interest visit markers');
 } finally {
+  LocalWorkspaceService.writeCampaignRuns = originalWriteCampaignRuns;
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);
   else Reflect.deleteProperty(globalThis, 'localStorage');
 }

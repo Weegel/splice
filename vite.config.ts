@@ -25,7 +25,7 @@ async function loadOrCreateCardCatalog() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const cards = await response.json()
       if (!Array.isArray(cards) || cards.length === 0) throw new Error('Card API returned no cards')
-      const snapshot = cards.map(({ id, name, color, type, rarity, stats }: any) => ({ id, name, color, type, rarity, stats }))
+      const snapshot = cards.map(({ id, name, color, type, sub_type, is_gladiator, rarity, stats }: any) => ({ id, name, color, type, sub_type, is_gladiator, rarity, stats }))
       await fs.mkdir(path.dirname(filePath), { recursive: true })
       await fs.writeFile(filePath, JSON.stringify(snapshot), 'utf8')
       return snapshot
@@ -99,6 +99,32 @@ async function migrateBattleFileNames(root: string) {
 const localWorkspacePlugin = () => ({
   name: 'local-workspace-writer',
   configureServer(server: any) {
+    server.middlewares.use('/__local_campaign_runs_save', async (req: any, res: any) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405
+        res.end('Method Not Allowed')
+        return
+      }
+      try {
+        let body = ''
+        for await (const chunk of req) body += chunk
+        const payload = JSON.parse(body)
+        if (!payload.runs || typeof payload.runs !== 'object' || Array.isArray(payload.runs)) throw new Error('Invalid campaign runs payload')
+        const root = path.resolve(process.cwd(), 'local')
+        await fs.mkdir(root, { recursive: true })
+        const filePath = path.join(root, 'campaign_runs.json')
+        await fs.writeFile(`${filePath}.tmp`, JSON.stringify({ runs: payload.runs }, null, 2), 'utf8')
+        await fs.rename(`${filePath}.tmp`, filePath)
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ ok: true }))
+      } catch (error) {
+        console.error('Campaign progress write failed', error)
+        res.statusCode = 400
+        res.end('Could not save campaign progress')
+      }
+    })
+
     server.middlewares.use('/__local_profiles_save', async (req: any, res: any) => {
       if (req.method !== 'POST') {
         res.statusCode = 405
@@ -179,7 +205,13 @@ const localWorkspacePlugin = () => ({
 
       try {
         const root = path.resolve(process.cwd(), 'local')
-        const result = { cards: [], challenges: [], campaigns: [], battleLogs: [], profiles: null, activeProfileId: null } as any
+        const result = { cards: [], challenges: [], campaigns: [], battleLogs: [], profiles: null, activeProfileId: null, campaignRuns: null } as any
+        try {
+          const progress = JSON.parse((await fs.readFile(path.join(root, 'campaign_runs.json'), 'utf8')).replace(/^\uFEFF/, ''))
+          if (progress.runs && typeof progress.runs === 'object' && !Array.isArray(progress.runs)) result.campaignRuns = progress.runs
+        } catch (error: any) {
+          if (error?.code !== 'ENOENT') console.warn('Could not load local/campaign_runs.json', error)
+        }
         try {
           const profileState = JSON.parse((await fs.readFile(path.join(root, 'profiles.json'), 'utf8')).replace(/^\uFEFF/, ''))
           if (Array.isArray(profileState.profiles)) {

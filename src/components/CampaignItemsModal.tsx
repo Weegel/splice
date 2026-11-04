@@ -15,10 +15,11 @@ interface CampaignItemsModalProps {
   items: CampaignItemDefinition[];
   autosaveStatus: 'saving' | 'saved' | 'error';
   onSave: (item: CampaignItemDefinition) => void;
+  onDelete: (itemId: string) => void;
   onClose: () => void;
 }
 
-export function CampaignItemsModal({ items, autosaveStatus, onSave, onClose }: CampaignItemsModalProps) {
+export function CampaignItemsModal({ items, autosaveStatus, onSave, onDelete, onClose }: CampaignItemsModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id || null);
   const selected = items.find((item) => item.id === selectedId);
   const [draft, setDraft] = useState(() => ({
@@ -33,6 +34,11 @@ export function CampaignItemsModal({ items, autosaveStatus, onSave, onClose }: C
     setSelectedId(item?.id || null);
     setDraft({ name: item?.name || '', description: item?.description || '', parameters: parameterRows(item?.parameters) });
     setError('');
+  };
+  const deleteItem = (item: CampaignItemDefinition) => {
+    if (!confirm(`Delete "${item.name}"? Existing references will remain and need to be updated.`)) return;
+    onDelete(item.id);
+    if (selectedId === item.id) selectItem(items.find((entry) => entry.id !== item.id));
   };
   const updateDraft = (changes: Partial<typeof draft>) => {
     const next = { ...draft, ...changes };
@@ -76,9 +82,13 @@ export function CampaignItemsModal({ items, autosaveStatus, onSave, onClose }: C
             <div className="max-h-48 overflow-y-auto sm:max-h-80">
               {!items.length && <p className="py-3 text-xs text-slate-500">No campaign items.</p>}
               {items.map((item) => (
-                <button key={item.id} type="button" aria-pressed={selectedId === item.id} onClick={() => selectItem(item)} className={`block w-full break-words border-b border-slate-800 px-2 py-3 text-left text-sm ${selectedId === item.id ? 'bg-slate-800 text-amber-200' : 'text-slate-300'}`}>
-                  {item.name}
-                </button>
+                <div key={item.id} className={`flex items-center gap-1 border-b border-slate-800 ${selectedId === item.id ? 'bg-slate-800' : ''}`}>
+                  <button type="button" aria-pressed={selectedId === item.id} onClick={() => selectItem(item)} className={`min-w-0 flex-1 break-words px-2 py-3 text-left text-sm ${selectedId === item.id ? 'text-amber-200' : 'text-slate-300'}`}>
+                    {item.name}
+                  </button>
+                  <button type="button" title={`Delete ${item.name}`} aria-label={`Delete ${item.name}`} onClick={() => deleteItem(item)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-rose-400 hover:bg-rose-950"><Trash2 className="h-4 w-4" /></button>
+                </div>
               ))}
             </div>
           </div>

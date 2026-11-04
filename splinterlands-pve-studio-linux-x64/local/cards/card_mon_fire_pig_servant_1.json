@@ -1,0 +1,23 @@
+{
+  "id": "mon_fire_pig_servant(1)",
+  "name": "Pig servant",
+  "splinter": "Life",
+  "cardType": "Monster",
+  "rarity": "Rare",
+  "isCustom": true,
+  "description": "A lowly pig servant who's only purpose is to feed the god of pork.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 5,
+      "attack": 2,
+      "attackType": "Melee",
+      "speed": 2,
+      "armor": 0,
+      "health": 3,
+      "abilities": [
+        "Immunity"
+      ]
+    }
+  ]
+}

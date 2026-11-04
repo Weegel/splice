@@ -9,6 +9,8 @@ export interface MonsterSelection {
 export interface TeamSelection {
   summonerId: string | null;
   summonerLevel: number;
+  summonerOptionId?: string;
+  summonerOptionTargets?: string[];
   monsters: MonsterSelection[];
 }
 
@@ -31,15 +33,18 @@ export interface CombatMonsterState {
   position: number; // 0-indexed position in line
   cardId: string;
   name: string;
+  bloodline?: string;
   splinter: Splinter;
   level: number;
   mana: number;
   
   // Base stats (after level and equalizer if any)
   baseAttack: number;
+  nativeAttackType: AttackType;
   attackType: AttackType;
   baseSpeed: number;
   baseArmor: number;
+  maxArmor: number;
   baseHealth: number;
   maxHealth: number;
 
@@ -48,6 +53,7 @@ export interface CombatMonsterState {
   currentSpeed: number;
   currentArmor: number;
   currentHealth: number;
+  accuracyModifier?: number;
   
   // Abilities
   abilities: Ability[];
@@ -56,11 +62,23 @@ export interface CombatMonsterState {
   // Status effects
   isAlive: boolean;
   isPoisoned: boolean;
+  isBurning: boolean;
   isStunned: boolean;
   isAfflicted: boolean; // cannot heal
+  isRevealed: boolean;
+  isSnared: boolean;
+  isExhausted: boolean;
   isEnraged: boolean;
   hasDivineShield: boolean;
   hasResurrected: boolean;
+  hasRebirthed: boolean;
+  hasResurged: boolean;
+  hasSoulSiphoned: boolean;
+  lastRechargeRound?: number;
+  determinedRound?: number;
+  lastWearyCheckRound?: number;
+  finalRestUsed?: boolean;
+  bloodlinePowerGained?: number;
   
   imageUrl?: string;
 }
@@ -100,6 +118,8 @@ export type BattleEventType =
   | 'POISON_TICK'
   | 'EARTHQUAKE_TICK'
   | 'FATIGUE_TICK'
+  | 'BURNING_TICK'
+  | 'ELECTRIFIED_TICK'
   | 'ROUND_END'
   | 'BATTLE_END';
 

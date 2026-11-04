@@ -1,0 +1,23 @@
+{
+  "id": "mon_water_smelly_toad(1)",
+  "name": "Smelly toad",
+  "splinter": "Water",
+  "cardType": "Monster",
+  "rarity": "Common",
+  "isCustom": true,
+  "description": "A newly forged PvE battle entity.",
+  "stats": [
+    {
+      "level": 1,
+      "mana": 3,
+      "attack": 1,
+      "attackType": "Melee",
+      "speed": 1,
+      "armor": 0,
+      "health": 3,
+      "abilities": [
+        "Reach"
+      ]
+    }
+  ]
+}

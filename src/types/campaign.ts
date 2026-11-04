@@ -40,6 +40,7 @@ export type CampaignPrecondition =
   | { id: string; type: 'has_not_unlock'; unlockId: string }
   | { id: string; type: 'card_unlocked'; cardId: string }
   | { id: string; type: 'card_not_unlocked'; cardId: string }
+  | { id: string; type: 'has_mana'; mana: number }
   | { id: string; type: 'has_item'; item: string; quantity: number };
 
 export interface DecisionChoice {
@@ -168,6 +169,7 @@ export interface CampaignActionDefinition {
   id: string;
   name: string;
   description?: string;
+  unlockPreconditions?: CampaignPrecondition[];
   preconditions: CampaignPrecondition[];
   effects: CampaignEffect[];
 }

@@ -465,6 +465,18 @@ export class StorageService {
   }
 
   // --- CAMPAIGN RUN PROGRESSION ---
+  static getCampaignRuns(): Record<string, CampaignRunState> {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.CAMPAIGN_RUNS) || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  static hydrateCampaignRuns(runs: Record<string, CampaignRunState>): void {
+    localStorage.setItem(STORAGE_KEYS.CAMPAIGN_RUNS, JSON.stringify(runs));
+  }
+
   static getCampaignRun(campaignId: string): CampaignRunState | null {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CAMPAIGN_RUNS);
@@ -482,6 +494,7 @@ export class StorageService {
       const runs: Record<string, CampaignRunState> = stored ? JSON.parse(stored) : {};
       runs[run.campaignId] = run;
       localStorage.setItem(STORAGE_KEYS.CAMPAIGN_RUNS, JSON.stringify(runs));
+      void LocalWorkspaceService.writeCampaignRuns(runs);
     } catch (e) {
       console.error('Failed to save campaign run', e);
     }
@@ -494,6 +507,7 @@ export class StorageService {
       const runs: Record<string, CampaignRunState> = JSON.parse(stored);
       delete runs[campaignId];
       localStorage.setItem(STORAGE_KEYS.CAMPAIGN_RUNS, JSON.stringify(runs));
+      void LocalWorkspaceService.writeCampaignRuns(runs);
     } catch (e) {
       console.error('Failed to delete campaign run', e);
     }
