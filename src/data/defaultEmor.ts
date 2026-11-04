@@ -1,8 +1,15 @@
 import { CampaignDefinition } from '../types/campaign';
-import emorCampaignJson from '../../local/campaigns/campaign_campaign_splintered_paths_of_emor.json';
 
-export const EMOR_CAMPAIGN: CampaignDefinition = {
-  ...(emorCampaignJson as unknown as CampaignDefinition),
-  id: 'campaign_splintered_paths_of_emor',
-  isCustom: false,
-};
+const localCampaigns = import.meta.glob<CampaignDefinition>(
+  '../../local/campaigns/campaign_campaign_splintered_paths_of_emor.json',
+  { eager: true, import: 'default' }
+);
+const emorCampaignJson = Object.values(localCampaigns)[0];
+
+export const EMOR_CAMPAIGN: CampaignDefinition | undefined = emorCampaignJson
+  ? {
+      ...emorCampaignJson,
+      id: 'campaign_splintered_paths_of_emor',
+      isCustom: false,
+    }
+  : undefined;
