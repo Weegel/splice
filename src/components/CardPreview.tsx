@@ -1,5 +1,5 @@
 import React from 'react';
-import { CardDefinition, Splinter, AttackType, Rarity } from '../types/card';
+import { CardDefinition, Splinter, AttackType, Rarity, getCardAttacks, MONSTER_ATTACK_TYPES } from '../types/card';
 import { Swords, Zap, Crosshair, Sparkles, Heart, Shield, Wind, Sparkle } from 'lucide-react';
 import { ABILITY_METAS } from '../data/abilities';
 import { isOfficialSplCardId } from '../data/cardIds';
@@ -107,7 +107,7 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
     }
 
     return (
-      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border shadow font-bold text-xs ${bg}`}>
+      <div key={type} title={`${type}: ${val}`} className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border shadow font-bold text-xs ${bg}`}>
         {icon}
         <span>{val}</span>
       </div>
@@ -177,8 +177,10 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
           {/* Attack */}
           <div className="flex flex-col items-center justify-center p-1 rounded bg-slate-900/90 border border-slate-800">
             <div className="text-[9px] text-slate-400 font-semibold">ATK</div>
-            <div className="flex items-center gap-0.5 font-bold">
-              {renderAttackIcon(statLevel.attackType, statLevel.attack) || <span className="text-slate-500">-</span>}
+            <div className="flex flex-wrap justify-center items-center gap-0.5 font-bold">
+              {MONSTER_ATTACK_TYPES.some((type) => (getCardAttacks(statLevel)[type] || 0) > 0)
+                ? MONSTER_ATTACK_TYPES.map((type) => renderAttackIcon(type, getCardAttacks(statLevel)[type] || 0))
+                : <span className="text-slate-500">-</span>}
             </div>
           </div>
 

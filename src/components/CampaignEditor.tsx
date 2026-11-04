@@ -26,7 +26,7 @@ import { CampaignPreconditionsEditor } from './CampaignPreconditionsEditor';
 import { CampaignItemSelect } from './CampaignItemSelect';
 import { CampaignNodePicker } from './CampaignNodePicker';
 import { getCampaignItems, saveCampaignItem } from '../data/campaignItems';
-import { renameCampaignNode } from '../data/campaignNodes';
+import { renameCampaignNode, selectCampaignBattle } from '../data/campaignNodes';
 import {
   BookOpen,
   Plus,
@@ -134,6 +134,8 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showEncounterGraph, setShowEncounterGraph] = useState(false);
   const [nodeSearch, setNodeSearch] = useState('');
+  const [battleSearch, setBattleSearch] = useState('');
+  useEffect(() => { setBattleSearch(''); }, [selectedNodeId, editingCampaign?.id]);
   const [nodeTypeFilter, setNodeTypeFilter] = useState<CampaignNodeType | 'all'>('all');
   const [isAddNodeMenuOpen, setIsAddNodeMenuOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -1702,16 +1704,38 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-400 mb-1">
+                          <label htmlFor="campaign-battle-select" className="block text-xs font-semibold text-slate-400 mb-1">
                             Linked PvE Battle Challenge Definition
                           </label>
+                          <div className="relative mb-2">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                            <input
+                              type="search"
+                              aria-label="Search battles"
+                              placeholder="Search battles"
+                              value={battleSearch}
+                              onChange={(event) => setBattleSearch(event.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
                           <select
+                            id="campaign-battle-select"
                             value={currentNode.challengeId || ''}
-                            onChange={(e) => handleUpdateNode({ ...currentNode, challengeId: e.target.value })}
+                            onChange={(event) => {
+                              const challenge = editorChallenges.find((entry) => entry.id === event.target.value);
+                              if (!challenge) {
+                                handleUpdateNode({ ...currentNode, challengeId: '', inlineChallenge: undefined });
+                                return;
+                              }
+                              const updated = selectCampaignBattle(editingCampaign, currentNode.id, challenge);
+                              setEditingCampaign(updated.campaign);
+                              setSelectedNodeId(updated.nodeId);
+                            }}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-rose-300 font-bold"
                           >
                             <option value="">-- Select a PvE Encounter --</option>
-                            {editorChallenges.map((ch) => (
+                            {editorChallenges.filter((challenge) => challenge.id === currentNode.challengeId
+                              || `${challenge.name} ${challenge.id} ${challenge.description} ${challenge.rulesets.join(' ')}`.toLowerCase().includes(battleSearch.trim().toLowerCase())).map((ch) => (
                               <option key={ch.id} value={ch.id}>
                                 {ch.name} ({ch.manaCap} Mana • Rules:{' '}
                                 {ch.rulesets.join(', ')})

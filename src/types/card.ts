@@ -154,10 +154,23 @@ export interface CardStatLevel {
   mana: number;
   attack: number;
   attackType: AttackType;
+  attacks?: Partial<Record<Exclude<AttackType, 'None'>, number>>;
   speed: number;
   armor: number;
   health: number;
   abilities: Ability[];
+}
+
+export const MONSTER_ATTACK_TYPES = ['Magic', 'Ranged', 'Melee'] as const;
+
+export function getCardAttacks(stat: Pick<CardStatLevel, 'attack' | 'attackType' | 'attacks'>): Partial<Record<Exclude<AttackType, 'None'>, number>> {
+  if (stat.attacks) return { ...stat.attacks };
+  return stat.attackType === 'None' ? {} : { [stat.attackType]: stat.attack };
+}
+
+export function withCardAttacks(attacks: NonNullable<CardStatLevel['attacks']>): Pick<CardStatLevel, 'attacks' | 'attack' | 'attackType'> {
+  const attackType = MONSTER_ATTACK_TYPES.find((type) => (attacks[type] || 0) > 0) || 'None';
+  return { attacks: { ...attacks }, attackType, attack: attackType === 'None' ? 0 : attacks[attackType] || 0 };
 }
 
 export interface SummonerBuffs {

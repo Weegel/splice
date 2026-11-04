@@ -50,6 +50,8 @@ export interface CombatMonsterState {
 
   // Current live combat stats
   currentAttack: number;
+  currentAttacks?: Partial<Record<Exclude<AttackType, 'None'>, number>>;
+  baseAttacks?: Partial<Record<Exclude<AttackType, 'None'>, number>>;
   currentSpeed: number;
   currentArmor: number;
   currentHealth: number;

@@ -741,7 +741,7 @@
       "type": "text",
       "title": "Not yet designed",
       "speakerName": "Developer",
-      "content": "Yeah, this is not yet designed. Tell you what, lets just pretend you defeated some rabbits instead and then walked into a tranquil meadow.",
+      "content": "Yeah, this is not yet designed. Tell you what, lets just say you ended up in a tranquil meadow.",
       "buttonText": "Continue",
       "nextNodeId": "node_tranquil_meadow_crossroads"
     },
@@ -1995,11 +1995,11 @@
         {
           "id": "route_node_1793628855047_574_1",
           "nextNodeId": "node_decision_berry_bush",
-          "probability": 20
+          "probability": 10
         },
         {
           "id": "route_node_1793628855047_574_2",
-          "nextNodeId": "",
+          "nextNodeId": "node_decision_clearing",
           "probability": 50
         }
       ]
@@ -2012,15 +2012,28 @@
       "choices": [
         {
           "id": "c_1793629099962_1",
-          "text": "Path Alpha",
-          "description": "Description of the first path",
-          "nextNodeId": ""
+          "text": "Taste them",
+          "description": "You taste the berries.",
+          "nextNodeId": "node_multi_tasting_the_berries"
         },
         {
           "id": "c_1793629099962_2",
-          "text": "Path Beta",
-          "description": "Description of the second path",
-          "nextNodeId": ""
+          "text": "Ignore them",
+          "description": "You ignore the berries and are on your way.",
+          "nextNodeId": "node_multi_hunting_in_the_small_forest"
+        },
+        {
+          "id": "choice_1793802540822",
+          "text": "Purge them",
+          "description": "Knowing how dangerous berry bushes can be you summon your forces.",
+          "nextNodeId": "node_multi_berry_bush_purge",
+          "preconditions": [
+            {
+              "id": "precondition_4be641ab-5244-41ee-9efb-bc682592dd09",
+              "type": "has_unlock",
+              "unlockId": "campaign_unlock_9b0bad49-9626-4897-bb50-ade319c33ead"
+            }
+          ]
         }
       ]
     },
@@ -2050,6 +2063,183 @@
       "content": "Before even your first summon is complete the dog pounces at you and pushes you to the ground. Just in time to avoid the dog's bite you manage to activate the pebble, but as you arrive in Emor you can still feel the teeth on your skin. That was close.",
       "buttonText": "Continue",
       "nextNodeId": "node_emor_hub"
+    },
+    "node_multi_tasting_the_berries": {
+      "id": "node_multi_tasting_the_berries",
+      "type": "multi",
+      "title": "Tasting the berries",
+      "choices": [
+        {
+          "id": "route_node_1793800589156_475_1",
+          "nextNodeId": "node_text_tasty_berries",
+          "probability": 30
+        },
+        {
+          "id": "route_node_1793800589156_475_2",
+          "nextNodeId": "node_text_tasty_berries_but",
+          "probability": 30
+        },
+        {
+          "id": "route_1793801010045_2",
+          "nextNodeId": "node_text_berry_ambush",
+          "probability": 40
+        }
+      ]
+    },
+    "node_text_tasty_berries": {
+      "id": "node_text_tasty_berries",
+      "type": "text",
+      "title": "Tasty berries",
+      "speakerName": "Narrator",
+      "content": "The berries taste sweet and delicious. You have a few more before you continue your search.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_multi_hunting_in_the_small_forest"
+    },
+    "node_text_tasty_berries_but": {
+      "id": "node_text_tasty_berries_but",
+      "type": "text",
+      "title": "Tasty berries, but...",
+      "speakerName": "Narrator",
+      "content": "You taste a berry and is tastes a bit bittersweet. You have another, and another, and... then you realize your stomach rumbling. Luckily you are surrounded by bushes. You quickly conjure up some toilet paper and do what needs to be done.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793800949012_0",
+          "type": "remove_mana",
+          "quantity": 1
+        }
+      ],
+      "nextNodeId": "node_multi_hunting_in_the_small_forest"
+    },
+    "node_text_berry_ambush": {
+      "id": "node_text_berry_ambush",
+      "type": "text",
+      "title": "Berry ambush",
+      "speakerName": "Narrator",
+      "content": "Just as you grab one of the berries the bush comes to life and thrashes at you with its thorns. You quickly summon your forces in defense.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_battle_berry_bush_ambush"
+    },
+    "node_multi_berry_bush_purge": {
+      "id": "node_multi_berry_bush_purge",
+      "type": "multi",
+      "title": "Berry bush purge",
+      "choices": [
+        {
+          "id": "route_node_1793802701041_600_1",
+          "nextNodeId": "node_text_defenseless_berry_bush",
+          "probability": 50
+        },
+        {
+          "id": "route_node_1793802701041_600_2",
+          "nextNodeId": "node_text_battle_of_the_berries",
+          "probability": 50
+        }
+      ]
+    },
+    "node_text_defenseless_berry_bush": {
+      "id": "node_text_defenseless_berry_bush",
+      "type": "text",
+      "title": "Defenseless berry bush",
+      "speakerName": "Narrator",
+      "content": "Your summons make short work of a poor defenseless berry bush who only wanted to make the world a better place by providing sweet and healthy nutrition to all. You monster.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_multi_hunting_in_the_small_forest"
+    },
+    "node_text_battle_of_the_berries": {
+      "id": "node_text_battle_of_the_berries",
+      "type": "text",
+      "title": "Battle of the berries",
+      "speakerName": "Narrator",
+      "content": "Sensing your intent the berry bushes awake, more than you had expected start to pepper your forces with thorns.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_battle_berry_bush_purge"
+    },
+    "node_battle_berry_bush_purge": {
+      "id": "node_battle_berry_bush_purge",
+      "type": "battle",
+      "title": "Berry bush purge",
+      "challengeId": "pve_custom_1793802411117",
+      "onDefeatNodeId": "node_text_retreat_from_the_berry_bushes",
+      "onVictoryNodeId": "node_text_berry_bush_purge"
+    },
+    "node_text_retreat_from_the_berry_bushes": {
+      "id": "node_text_retreat_from_the_berry_bushes",
+      "type": "text",
+      "title": "Retreat from the berry bushes",
+      "speakerName": "Narrator",
+      "content": "As your summons have fallen and you are about to feel the sting of hundreds of thorns you activate the pebble.",
+      "buttonText": "Continue",
+      "nextNodeId": "node_emor_hub"
+    },
+    "node_text_berry_bush_purge": {
+      "id": "node_text_berry_bush_purge",
+      "type": "text",
+      "title": "Berry bush purge",
+      "speakerName": "Narrator",
+      "content": "Your summons defeated the dangerous berry bushes and made the forest a bit safer.  You collect a few trophies and are on your way.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793803019229_0",
+          "type": "give_object",
+          "object": "Malicious berry",
+          "quantity": 2
+        }
+      ],
+      "nextNodeId": "node_multi_hunting_in_the_small_forest"
+    },
+    "node_battle_berry_bush_ambush": {
+      "id": "node_battle_berry_bush_ambush",
+      "type": "battle",
+      "title": "Berry bush ambush",
+      "challengeId": "pve_custom_1793802353908",
+      "onDefeatNodeId": "node_text_retreat_from_the_berry_bushes",
+      "onVictoryNodeId": "node_text_survived_the_berry_ambush"
+    },
+    "node_text_survived_the_berry_ambush": {
+      "id": "node_text_survived_the_berry_ambush",
+      "type": "text",
+      "title": "Survived the berry ambush",
+      "speakerName": "Narrator",
+      "content": "Having defeated the berry bush... ambush... you pocket berry you picked and continue into the forest.",
+      "buttonText": "Continue",
+      "effects": [
+        {
+          "id": "effect_1793803252461_0",
+          "type": "give_object",
+          "object": "Malicious berry",
+          "quantity": 1
+        },
+        {
+          "id": "effect_1793803546899_1",
+          "type": "campaignunlock",
+          "unlockIds": [
+            "campaign_unlock_9b0bad49-9626-4897-bb50-ade319c33ead"
+          ]
+        }
+      ],
+      "nextNodeId": "node_multi_hunting_in_the_small_forest"
+    },
+    "node_decision_clearing": {
+      "id": "node_decision_clearing",
+      "type": "decision",
+      "title": "Clearing",
+      "prompt": "Walking through the forest you realize its size was deceptive and it is large enough to get lost. Finally the thicket lightens and you see a path out of it, leading to the abandoned farm. You could have sworn it must be in the other direction.",
+      "choices": [
+        {
+          "id": "c_1793803371600_1",
+          "text": "Leave the forest",
+          "description": "You leave the forest and return to the abandoned farm.",
+          "nextNodeId": "node_abandoned_farm_hub"
+        },
+        {
+          "id": "c_1793803371600_2",
+          "text": "Go back into the forest",
+          "description": "Not wanting to return to the farm you go back into the forest.",
+          "nextNodeId": "node_multi_hunting_in_the_small_forest"
+        }
+      ]
     }
   },
   "embeddedCards": [
@@ -2732,14 +2922,17 @@
         {
           "level": 1,
           "mana": 2,
-          "attack": 5,
+          "attack": 1,
           "attackType": "Melee",
           "speed": 2,
           "armor": 0,
           "health": 2,
           "abilities": [
             "Reach"
-          ]
+          ],
+          "attacks": {
+            "Melee": 1
+          }
         }
       ]
     },
@@ -3057,6 +3250,33 @@
           "armor": 0,
           "health": 3,
           "abilities": []
+        }
+      ]
+    },
+    {
+      "id": "mon_earth_malicious_berry_bush(1)",
+      "name": "Malicious berry bush",
+      "splinter": "Earth",
+      "cardType": "Monster",
+      "rarity": "Rare",
+      "isCustom": true,
+      "description": "A malicious berry bush which lures its victims in with his sweet berries and envelops them in its thorns.",
+      "stats": [
+        {
+          "level": 1,
+          "mana": 5,
+          "attack": 1,
+          "attackType": "Ranged",
+          "speed": 1,
+          "armor": 0,
+          "health": 4,
+          "abilities": [
+            "Thorns"
+          ],
+          "attacks": {
+            "Melee": 1,
+            "Ranged": 1
+          }
         }
       ]
     }
@@ -3746,6 +3966,138 @@
           ]
         }
       ]
+    },
+    {
+      "id": "pve_custom_1793802411117",
+      "name": "Berry bush purge",
+      "description": "Clear the immediate area of dangerous berry bushes.",
+      "manaCap": 25,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_earth_malicious_berry_bush(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_earth_malicious_berry_bush(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_earth_malicious_berry_bush(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_earth_malicious_berry_bush(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_earth_malicious_berry_bush(1)",
+          "name": "Malicious berry bush",
+          "splinter": "Earth",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "A malicious berry bush which lures its victims in with his sweet berries and envelops them in its thorns.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 5,
+              "attack": 1,
+              "attackType": "Ranged",
+              "speed": 1,
+              "armor": 0,
+              "health": 4,
+              "abilities": [
+                "Thorns"
+              ],
+              "attacks": {
+                "Melee": 1,
+                "Ranged": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pve_custom_1793802353908",
+      "name": "Berry bush ambush",
+      "description": "Just as you attempt to pick a berry the bushes come to live.",
+      "manaCap": 25,
+      "rulesets": [
+        "Standard"
+      ],
+      "allowedSplinters": [
+        "Fire",
+        "Water",
+        "Earth",
+        "Life",
+        "Death",
+        "Dragon",
+        "Neutral"
+      ],
+      "isCustom": true,
+      "enemyTeam": {
+        "summonerId": null,
+        "summonerLevel": 1,
+        "monsters": [
+          {
+            "cardId": "mon_earth_malicious_berry_bush(1)",
+            "level": 1
+          },
+          {
+            "cardId": "mon_earth_malicious_berry_bush(1)",
+            "level": 1
+          }
+        ]
+      },
+      "embeddedCards": [
+        {
+          "id": "mon_earth_malicious_berry_bush(1)",
+          "name": "Malicious berry bush",
+          "splinter": "Earth",
+          "cardType": "Monster",
+          "rarity": "Rare",
+          "isCustom": true,
+          "description": "A malicious berry bush which lures its victims in with his sweet berries and envelops them in its thorns.",
+          "stats": [
+            {
+              "level": 1,
+              "mana": 5,
+              "attack": 1,
+              "attackType": "Ranged",
+              "speed": 1,
+              "armor": 0,
+              "health": 4,
+              "abilities": [
+                "Thorns"
+              ],
+              "attacks": {
+                "Melee": 1,
+                "Ranged": 1
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "campaignMana": true,
@@ -3823,6 +4175,14 @@
       "name": "Farmer's trinket",
       "description": "A small trinket with a small painting inside. You wonder how such a small painting can perfectly capture the idyllic farmstead the abandoned farm once was.",
       "parameters": {}
+    },
+    {
+      "id": "campaign_item_87004818-fecf-47a0-86b3-d98fd2f2d01a",
+      "name": "Malicious berry",
+      "description": "The berry of a malicious berry bush. If you would eat it, you could taste the malice.",
+      "parameters": {
+        "sellvalue": 1
+      }
     }
   ],
   "unlocks": [
@@ -3905,6 +4265,11 @@
       "id": "campaign_unlock_e123d396-e469-4b50-bf3d-6dc225cd6aa4",
       "name": "Discovered Alric spell",
       "description": "You have discovered a spell to summon a stable collapsing storm. Very specific."
+    },
+    {
+      "id": "campaign_unlock_9b0bad49-9626-4897-bb50-ade319c33ead",
+      "name": "The berry threat",
+      "description": "You realized that berry bushes may be malicious monsters out for blood. Good to know."
     }
   ],
   "actions": [

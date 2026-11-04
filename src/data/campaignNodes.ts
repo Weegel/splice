@@ -1,4 +1,14 @@
 import { CampaignDefinition, CampaignEffect, CampaignNode } from '../types/campaign';
+import { PvEChallenge } from '../types/battle';
+
+export function selectCampaignBattle(campaign: CampaignDefinition, nodeId: string, challenge: PvEChallenge): { campaign: CampaignDefinition; nodeId: string } {
+  const node = campaign.nodes[nodeId];
+  if (node?.type !== 'battle') return { campaign, nodeId };
+  return renameCampaignNode({
+    ...campaign,
+    nodes: { ...campaign.nodes, [nodeId]: { ...node, challengeId: challenge.id, inlineChallenge: undefined } },
+  }, nodeId, challenge.name);
+}
 
 export function renameCampaignNode(campaign: CampaignDefinition, nodeId: string, title: string): { campaign: CampaignDefinition; nodeId: string } {
   const originalNode = campaign.nodes[nodeId];

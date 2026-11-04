@@ -12,7 +12,7 @@ import { DEFAULT_CAMPAIGNS } from './defaultCampaigns';
 import { PvEChallenge } from '../types/battle';
 import { LocalWorkspaceService } from '../services/localWorkspace';
 import { getCampaignItems, parseCampaignItemParameters, saveCampaignItem } from './campaignItems';
-import { renameCampaignNode } from './campaignNodes';
+import { renameCampaignNode, selectCampaignBattle } from './campaignNodes';
 import { CampaignItemSelect } from '../components/CampaignItemSelect';
 import { CampaignItemsModal } from '../components/CampaignItemsModal';
 import { CampaignEffectsEditor } from '../components/CampaignEffectsEditor';
@@ -56,6 +56,29 @@ const nodeNamingCampaign: CampaignDefinition = {
   },
 };
 const nodeNamingSnapshot = JSON.stringify(nodeNamingCampaign);
+const selectedBattle: PvEChallenge = {
+  id: 'selected_encounter', name: 'Forest Ambush', description: '', manaCap: 20,
+  rulesets: ['Standard'], allowedSplinters: ['Earth'], enemyTeam: { summonerId: null, summonerLevel: 1, monsters: [] },
+};
+const battleSelectionCampaign: CampaignDefinition = {
+  ...nodeNamingCampaign, startNodeId: 'battle',
+  nodes: {
+    ...nodeNamingCampaign.nodes,
+    start: { id: 'start', type: 'text', title: 'Approach', content: '', nextNodeId: 'battle' },
+    battle: { id: 'battle', type: 'battle', title: 'Old Battle', inlineChallenge: { ...selectedBattle, id: 'old_inline' }, onVictoryNodeId: 'battle', onDefeatNodeId: 'start' },
+  },
+};
+const battleSelectionSnapshot = JSON.stringify(battleSelectionCampaign);
+const selectedEncounter = selectCampaignBattle(battleSelectionCampaign, 'battle', selectedBattle);
+const selectedBattleNode = selectedEncounter.campaign.nodes[selectedEncounter.nodeId];
+assert(selectedBattleNode.type === 'battle' && selectedBattleNode.title === selectedBattle.name
+  && selectedBattleNode.challengeId === selectedBattle.id && !selectedBattleNode.inlineChallenge,
+'Choosing a battle renames the node to its battle name and replaces stale inline encounters');
+assert(selectedEncounter.nodeId === 'node_battle_forest_ambush' && selectedEncounter.campaign.startNodeId === selectedEncounter.nodeId
+  && selectedEncounter.campaign.nodes.start.type === 'text' && selectedEncounter.campaign.nodes.start.nextNodeId === selectedEncounter.nodeId
+  && selectedBattleNode.type === 'battle' && selectedBattleNode.onVictoryNodeId === selectedEncounter.nodeId && selectedBattleNode.onDefeatNodeId === 'start',
+'Choosing a battle preserves incoming links, self-links, and outcome destinations while renaming the node ID');
+assert(JSON.stringify(battleSelectionCampaign) === battleSelectionSnapshot, 'Battle selection does not mutate the existing campaign');
 const renamedNodeResult = renameCampaignNode(nodeNamingCampaign, 'start', 'Abandoned Farm Stable');
 const namedCampaign = renamedNodeResult.campaign;
 const namedNodeId = renamedNodeResult.nodeId;

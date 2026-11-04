@@ -1,5 +1,5 @@
 import React, { useCallback, useDeferredValue, useState } from 'react';
-import { CardDefinition, Splinter, CardType, Rarity, AttackType, Ability, CardStatLevel, SummonerBuffs } from '../types/card';
+import { CardDefinition, Splinter, CardType, Rarity, Ability, CardStatLevel, SummonerBuffs, getCardAttacks, withCardAttacks } from '../types/card';
 import { ALL_ABILITIES, ABILITY_METAS } from '../data/abilities';
 import { ALL_SPLINTERS } from '../types/ruleset';
 import { CardPreview, SPLINTER_BG_COLORS } from './CardPreview';
@@ -702,7 +702,7 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
                   </div>
 
                   {/* Core Combat Stats */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
                     {/* Mana */}
                     <div>
                       <label className="block text-[11px] font-bold text-blue-400 mb-1">Mana Cost</label>
@@ -716,33 +716,23 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
                       />
                     </div>
 
-                    {/* Attack Value */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-orange-400 mb-1">Attack</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        value={currentStatLevel.attack}
-                        onChange={(e) => updateCurrentStatLevel({ attack: parseInt(e.target.value) || 0 })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm font-bold text-center text-orange-300"
-                      />
-                    </div>
-
-                    {/* Attack Type */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">Atk Type</label>
-                      <select
-                        value={currentStatLevel.attackType}
-                        onChange={(e) => updateCurrentStatLevel({ attackType: e.target.value as AttackType })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-xs font-semibold text-slate-200"
-                      >
-                        <option value="Melee">Melee</option>
-                        <option value="Ranged">Ranged</option>
-                        <option value="Magic">Magic</option>
-                        <option value="None">None</option>
-                      </select>
-                    </div>
+                    {(['Melee', 'Ranged', 'Magic'] as const).map((type) => (
+                      <div key={type}>
+                        <label htmlFor={`card-attack-${type}`} className="block text-[11px] font-bold text-orange-400 mb-1">{type}</label>
+                        <input
+                          id={`card-attack-${type}`}
+                          type="number"
+                          min="0"
+                          max="20"
+                          value={getCardAttacks(currentStatLevel)[type] || 0}
+                          onChange={(event) => updateCurrentStatLevel(withCardAttacks({
+                            ...getCardAttacks(currentStatLevel),
+                            [type]: Math.max(0, Math.min(20, parseInt(event.target.value) || 0)),
+                          }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm font-bold text-center text-orange-300"
+                        />
+                      </div>
+                    ))}
 
                     {/* Speed */}
                     <div>

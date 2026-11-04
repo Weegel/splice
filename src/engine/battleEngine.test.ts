@@ -1,6 +1,6 @@
 import { BattleEngine } from './battleEngine';
 import { TeamSelection } from '../types/battle';
-import { CardDefinition } from '../types/card';
+import { CardDefinition, getCardAttacks, withCardAttacks } from '../types/card';
 import cardDetails from '../../local/all_cards.json';
 import { DEFAULT_PVE_CARDS, LEGACY_CARD_IDS_BY_API_ID } from '../data/defaultPveCards';
 import { SplinterlandsApiService, SplinterlandsRawCardDetail } from '../services/splinterlandsApi';
@@ -1159,7 +1159,36 @@ function runTests() {
       && log.events.some((event) => event.type === 'ATTACK' && event.actorName === blasphemer.name && event.amount === 2), 'Blasphemy of Uul permanently gains one ranged power per allied Divine Construct');
   }
 
+  {
+    const hybrid: CardDefinition = {
+      id: 'test_hybrid', name: 'Hybrid', splinter: 'Earth', cardType: 'Monster', rarity: 'Epic',
+      stats: [{ level: 1, mana: 5, ...withCardAttacks({ Melee: 2, Ranged: 3, Magic: 1 }), speed: 5, armor: 0, health: 50, abilities: ['True Strike'] }],
+    };
+    const inert: CardDefinition = {
+      ...hybrid, id: 'test_hybrid_inert', name: 'Inert',
+      stats: [{ ...hybrid.stats[0], ...withCardAttacks({}), health: 100, abilities: [] }],
+    };
+    const team = (...cardIds: string[]): TeamSelection => ({ summonerId: null, summonerLevel: 1, monsters: cardIds.map((cardId) => ({ cardId, level: 1 })) });
+    const simulate = (cards: CardDefinition[], lineup: string[]) => new BattleEngine(cards, ['Standard'], 20, team(...lineup), team(inert.id), undefined, { seed: 1, maxRounds: 1 }).resolve();
+    const front = simulate([hybrid, inert], [hybrid.id]);
+    const frontAttacks = front.events.filter((event) => event.type === 'ATTACK' && event.actorName === hybrid.name);
+    assert(frontAttacks.map((event) => event.attackType).join(',') === 'Magic,Melee'
+      && frontAttacks[0].amount === 1 && frontAttacks[1].amount === 2, 'Frontline hybrids use Magic and Melee independently but cannot use Ranged without Close Range');
+    const back = simulate([hybrid, inert], [inert.id, hybrid.id]);
+    assert(back.events.filter((event) => event.type === 'ATTACK' && event.actorName === hybrid.name).map((event) => event.attackType).join(',') === 'Magic,Ranged', 'Backline hybrids use Magic and Ranged while respecting Melee position restrictions');
+    const closeRange: CardDefinition = { ...hybrid, stats: [{ ...hybrid.stats[0], abilities: ['True Strike', 'Close Range'] }] };
+    const triple = simulate([closeRange, inert], [hybrid.id]);
+    assert(triple.events.filter((event) => event.type === 'ATTACK' && event.actorName === hybrid.name).map((event) => event.attackType).join(',') === 'Magic,Ranged,Melee', 'Close Range lets a frontline hybrid use all three attack types');
+    const converted = SplinterlandsApiService.convertRawDetailToCardDefinition({ id: 999999, name: 'API Hybrid', color: 'Green', type: 'Monster', rarity: 3,
+      stats: { mana: [5], attack: [2], ranged: [3], magic: [1], speed: [5], health: [50], armor: [0], abilities: [[]] } });
+    const convertedAttacks = converted && getCardAttacks(converted.stats[0]);
+    assert(convertedAttacks?.Melee === 2 && convertedAttacks.Ranged === 3 && convertedAttacks.Magic === 1, 'API conversion preserves all hybrid attack values');
+    assert(JSON.stringify(getCardAttacks(JSON.parse(JSON.stringify(hybrid)).stats[0])) === JSON.stringify(getCardAttacks(hybrid.stats[0])), 'Multiple attack values survive card JSON export and import');
+    assert(front.initialTeam1[0].currentAttacks?.Ranged === 3 && front.events[0].boardSnapshot.team1[0].currentAttacks?.Melee === 2, 'Hybrid attack powers are preserved in independent replay snapshots');
+  }
+
   console.log(`\nResults: ${passed} Passed, ${failed} Failed\n`);
+  if (failed > 0) throw new Error(`${failed} battle engine assertions failed`);
 }
 
 runTests();

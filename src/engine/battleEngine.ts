@@ -1,4 +1,4 @@
-import { Ability, AttackType, CardDefinition, Splinter, SummonerOption } from '../types/card';
+import { Ability, AttackType, CardDefinition, Splinter, SummonerOption, getCardAttacks, MONSTER_ATTACK_TYPES, withCardAttacks } from '../types/card';
 import { RulesetName } from '../types/ruleset';
 import {
   BattleEvent,
@@ -102,8 +102,17 @@ export class BattleEngine {
 
   private createBoardSnapshot(): { team1: CombatMonsterState[]; team2: CombatMonsterState[] } {
     return {
-      team1: this.team1Monsters.map((m) => ({ ...m, abilities: [...m.abilities] })),
-      team2: this.team2Monsters.map((m) => ({ ...m, abilities: [...m.abilities] })),
+      team1: this.team1Monsters.map((monster) => this.snapshotMonster(monster)),
+      team2: this.team2Monsters.map((monster) => this.snapshotMonster(monster)),
+    };
+  }
+
+  private snapshotMonster(monster: CombatMonsterState): CombatMonsterState {
+    return {
+      ...monster,
+      abilities: [...monster.abilities],
+      currentAttacks: { ...monster.currentAttacks, ...(monster.attackType !== 'None' ? { [monster.attackType]: monster.currentAttack } : {}) },
+      baseAttacks: { ...monster.baseAttacks, ...(monster.attackType !== 'None' ? { [monster.attackType]: monster.baseAttack } : {}) },
     };
   }
 
@@ -124,6 +133,8 @@ export class BattleEngine {
     const card = this.getCard(cardId);
     const statLevel =
       card.stats.find((s) => s.level === level) || card.stats[card.stats.length - 1] || card.stats[0];
+    const attacks = getCardAttacks(statLevel);
+    const primaryAttack = withCardAttacks(attacks);
 
     return {
       instanceId: `team${teamIndex}_${pos}_${card.id}`,
@@ -135,15 +146,17 @@ export class BattleEngine {
       splinter: card.splinter,
       level: statLevel.level,
       mana: statLevel.mana,
-      baseAttack: statLevel.attack,
-      nativeAttackType: statLevel.attackType,
-      attackType: statLevel.attackType,
+      baseAttack: primaryAttack.attack,
+      nativeAttackType: primaryAttack.attackType,
+      attackType: primaryAttack.attackType,
       baseSpeed: statLevel.speed,
       baseArmor: statLevel.armor,
       maxArmor: statLevel.armor,
       baseHealth: statLevel.health,
       maxHealth: statLevel.health,
-      currentAttack: statLevel.attack,
+      currentAttack: primaryAttack.attack,
+      currentAttacks: { ...attacks },
+      baseAttacks: { ...attacks },
       currentSpeed: statLevel.speed,
       currentArmor: statLevel.armor,
       currentHealth: statLevel.health,
@@ -184,8 +197,8 @@ export class BattleEngine {
       this.createMonsterState(m.cardId, m.level, 2, idx)
     );
 
-    const initialSnapshot1 = this.team1Monsters.map((m) => ({ ...m, abilities: [...m.abilities] }));
-    const initialSnapshot2 = this.team2Monsters.map((m) => ({ ...m, abilities: [...m.abilities] }));
+    const initialSnapshot1 = this.team1Monsters.map((monster) => this.snapshotMonster(monster));
+    const initialSnapshot2 = this.team2Monsters.map((monster) => this.snapshotMonster(monster));
 
     this.addEvent('BATTLE_INIT', `Battle initialized: Team 1 (${this.team1Summoner?.name || 'No Summoner'}) vs Team 2 (${this.team2Summoner?.name || 'No Summoner'})`);
 
@@ -1168,11 +1181,56 @@ export class BattleEngine {
   }
 
   private executeMonsterTurn(actor: CombatMonsterState): void {
-    if (actor.attackType === 'None' || actor.currentAttack <= 0) return;
+    if (!MONSTER_ATTACK_TYPES.some((type) => this.getAttackPower(actor, type) > 0)) return;
     if (actor.abilities.includes('Recharge')) {
       if (actor.lastRechargeRound !== undefined && this.currentRound - actor.lastRechargeRound < 2) return;
       actor.lastRechargeRound = this.currentRound;
     }
+
+    for (const type of MONSTER_ATTACK_TYPES) {
+      if (!actor.isAlive || !this.isTeamAlive(actor.teamIndex === 1 ? 2 : 1)) break;
+      if (this.getAttackPower(actor, type) <= 0) continue;
+      this.withAttackType(actor, type, () => this.executeAttackTurn(actor));
+    }
+  }
+
+  private getAttackPower(monster: CombatMonsterState, type: Exclude<AttackType, 'None'>): number {
+    return monster.attackType === type ? monster.currentAttack : monster.currentAttacks?.[type] || 0;
+  }
+
+  private setAttackPower(monster: CombatMonsterState, type: Exclude<AttackType, 'None'>, power: number): void {
+    monster.currentAttacks ||= {};
+    monster.currentAttacks[type] = Math.max(0, power);
+    if (monster.attackType === type) monster.currentAttack = monster.currentAttacks[type]!;
+  }
+
+  private withAttackType(monster: CombatMonsterState, type: Exclude<AttackType, 'None'>, action: () => void): void {
+    const previousType = monster.attackType;
+    if (previousType === type) {
+      action();
+      return;
+    }
+    monster.currentAttacks ||= {};
+    monster.baseAttacks ||= {};
+    if (previousType !== 'None') {
+      monster.currentAttacks[previousType] = monster.currentAttack;
+      monster.baseAttacks[previousType] = monster.baseAttack;
+    }
+    monster.attackType = type;
+    monster.currentAttack = monster.currentAttacks[type] || 0;
+    monster.baseAttack = monster.baseAttacks[type] || 0;
+    try {
+      action();
+    } finally {
+      monster.currentAttacks[type] = monster.currentAttack;
+      monster.baseAttacks[type] = monster.baseAttack;
+      monster.attackType = previousType;
+      monster.currentAttack = previousType === 'None' ? 0 : monster.currentAttacks[previousType] || 0;
+      monster.baseAttack = previousType === 'None' ? 0 : monster.baseAttacks[previousType] || 0;
+    }
+  }
+
+  private executeAttackTurn(actor: CombatMonsterState): void {
 
     const friendlyTeam = this.getAliveMonsters(actor.teamIndex);
     const enemyTeamIdx = actor.teamIndex === 1 ? 2 : 1;

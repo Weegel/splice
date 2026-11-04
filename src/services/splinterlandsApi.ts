@@ -390,6 +390,7 @@ export class SplinterlandsApiService {
           mana,
           attack,
           attackType,
+          attacks: { Melee: melee, Ranged: ranged, Magic: magic },
           speed,
           armor,
           health,
