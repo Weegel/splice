@@ -1,0 +1,102 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package And Attest
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check Out Tagged Source
+        uses: actions/checkout@v4
+
+      - name: Set Up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install Locked Dependencies
+        run: npm ci
+
+      - name: Prepare Starter Content
+        run: |
+          foreach ($folder in @('cards', 'battles', 'campaigns')) {
+            New-Item -ItemType Directory -Path "local/$folder" -Force | Out-Null
+          }
+          if (-not (Test-Path local/all_cards.json)) {
+            $downloaded = $false
+            foreach ($endpoint in @('https://api2.splinterlands.com/cards/get_details', 'https://api.splinterlands.io/cards/get_details', 'https://api.splinterlands.com/cards/get_details')) {
+              try {
+                $cards = Invoke-RestMethod -Uri $endpoint -TimeoutSec 60
+                if ($cards -isnot [array] -or $cards.Count -eq 0) { throw 'Empty card catalog.' }
+                ConvertTo-Json -InputObject $cards -Depth 100 -Compress | Set-Content local/all_cards.json -Encoding utf8NoBOM
+                $downloaded = $true
+                break
+              } catch {
+                Write-Warning "Catalog download failed: $endpoint"
+              }
+            }
+            if (-not $downloaded) { throw 'Could not download the starter card catalog.' }
+          }
+
+      - name: Build Windows Package
+        run: ./package-portable.ps1
+
+      - name: Build Linux Package
+        run: ./package-linux.ps1
+
+      - name: Prepare Versioned Assets And Checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw 'Release tags must look like v0.1.0 or v0.1.0-beta.1.'
+          }
+          New-Item -ItemType Directory -Path release-assets | Out-Null
+          Copy-Item splinterlands-pve-studio-portable.zip "release-assets/splinterlands-pve-studio-$env:RELEASE_TAG-windows-portable.zip"
+          Copy-Item splinterlands-pve-studio-linux-x64.tar.gz "release-assets/splinterlands-pve-studio-$env:RELEASE_TAG-linux-x64.tar.gz"
+          $checksums = Get-ChildItem release-assets -File | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          }
+          $checksums | Set-Content release-assets/SHA256SUMS.txt -Encoding utf8NoBOM
+
+      - name: Attest Release Assets
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: release-assets/*
+
+      - name: Retain Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.ref_name }}
+          path: release-assets/*
+          if-no-files-found: error
+
+      - name: Create Draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $assets = (Get-ChildItem release-assets -File).FullName
+          gh release create $env:RELEASE_TAG --verify-tag --draft --generate-notes --title "Splinterlands PvE Studio $env:RELEASE_TAG" @assets
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
