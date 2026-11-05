@@ -97,7 +97,7 @@ export const CampaignPlayer: React.FC<CampaignPlayerProps> = ({
   playerCollection,
   onExit,
 }) => {
-  const cardCatalog = [...new Map([...cards, ...(campaign.embeddedCards || [])].map((card) => [card.id, card])).values()];
+  const cardCatalog = [...new Map([...(campaign.embeddedCards || []), ...cards].map((card) => [card.id, card])).values()];
   // Campaign progress state
   const [runState, setRunState] = useState<CampaignRunState>(() => {
     const existing = StorageService.getCampaignRun(campaign.id);

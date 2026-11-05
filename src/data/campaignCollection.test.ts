@@ -566,6 +566,12 @@ Object.defineProperty(globalThis, 'localStorage', {
   },
 });
 const originalWriteCampaignRuns = LocalWorkspaceService.writeCampaignRuns;
+const originalWriteCreation = LocalWorkspaceService.writeCreation;
+const writtenCreations: { kind: Parameters<typeof LocalWorkspaceService.writeCreation>[0]; value: Parameters<typeof LocalWorkspaceService.writeCreation>[1] }[] = [];
+LocalWorkspaceService.writeCreation = async (kind, value) => {
+  writtenCreations.push({ kind, value: JSON.parse(JSON.stringify(value)) });
+  return true;
+};
 const persistedRuns: Record<string, CampaignRunState>[] = [];
 LocalWorkspaceService.writeCampaignRuns = async (runs) => {
   persistedRuns.push(JSON.parse(JSON.stringify(runs)));
@@ -596,6 +602,37 @@ try {
   storedValues.set('splinter_custom_challenges', JSON.stringify([{ ...nestedBattle, name: 'Standalone Battle Edit' }]));
   assert(StorageService.getCards().find((card) => card.id === nestedCard.id)?.name === 'Standalone Card Edit'
     && StorageService.getChallenges().find((battle) => battle.id === nestedBattle.id)?.name === 'Standalone Battle Edit', 'Standalone card and battle edits override campaign snapshots');
+  storedValues.delete('splinter_custom_cards');
+  storedValues.delete('splinter_custom_challenges');
+  const editableCampaign: CampaignDefinition = {
+    ...nestedCampaign,
+    startingCollection: [{ cardId: nestedCard.id, maxLevel: 1 }],
+    embeddedCards: [nestedCard],
+    embeddedChallenges: [nestedBattle],
+    nodes: {
+      ...nestedCampaign.nodes,
+      linked: { id: 'linked', type: 'battle', title: 'Linked', challengeId: nestedBattle.id },
+    },
+  };
+  const unrelatedCampaign: CampaignDefinition = { ...campaign, id: 'unrelated_card_campaign' };
+  storedValues.set('splinter_custom_campaigns', JSON.stringify([editableCampaign, unrelatedCampaign]));
+  const priorRun = createCampaignRun(editableCampaign, [nestedCard]);
+  const priorRunSnapshot = JSON.stringify(priorRun);
+  const updatedMonster: CardDefinition = { ...nestedCard, name: 'Updated Campaign Monster', stats: [{ ...nestedCard.stats[0], health: 99 }] };
+  const savedMonster = StorageService.saveCard(updatedMonster);
+  assert(savedMonster.id === nestedCard.id, 'Editing a campaign-only custom monster preserves its ID instead of creating a disconnected copy');
+  const updatedCampaign = StorageService.getCustomCampaigns().find((entry) => entry.id === editableCampaign.id)!;
+  const updatedInline = updatedCampaign.nodes.start;
+  assert(updatedCampaign.embeddedCards?.find((card) => card.id === nestedCard.id)?.stats[0].health === 99
+    && updatedCampaign.embeddedChallenges?.find((battle) => battle.id === nestedBattle.id)?.embeddedCards?.find((card) => card.id === nestedCard.id)?.name === updatedMonster.name
+    && updatedInline.type === 'battle' && updatedInline.inlineChallenge?.embeddedCards?.find((card) => card.id === nestedCard.id)?.stats[0].health === 99,
+  'Card Forge edits refresh top-level, linked battle, and inline battle snapshots in affected campaigns');
+  assert(writtenCreations.some((entry) => entry.kind === 'campaigns' && entry.value.id === editableCampaign.id)
+    && !writtenCreations.some((entry) => entry.kind === 'campaigns' && entry.value.id === unrelatedCampaign.id),
+  'Editing a campaign card writes affected campaign files without rewriting unrelated campaigns');
+  assert(JSON.stringify(priorRun) === priorRunSnapshot
+    && createCampaignCollection(updatedCampaign, StorageService.getCards())[0].stats[0].health === 99,
+  'Card definition edits apply to new campaign collections without changing active run snapshots');
   storedValues.delete('splinter_custom_campaigns');
   storedValues.delete('splinter_custom_cards');
   storedValues.delete('splinter_custom_challenges');
@@ -770,6 +807,7 @@ try {
   StorageService.saveCampaignRun(visitedHubRun);
   assert(renderHub().includes('Visited'), 'Resuming a hub preserves point of interest visit markers');
 } finally {
+  LocalWorkspaceService.writeCreation = originalWriteCreation;
   LocalWorkspaceService.writeCampaignRuns = originalWriteCampaignRuns;
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);
   else Reflect.deleteProperty(globalThis, 'localStorage');
