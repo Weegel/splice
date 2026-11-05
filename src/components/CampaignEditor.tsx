@@ -27,6 +27,7 @@ import { CampaignItemSelect } from './CampaignItemSelect';
 import { CampaignNodePicker } from './CampaignNodePicker';
 import { getCampaignItems, saveCampaignItem } from '../data/campaignItems';
 import { renameCampaignNode, selectCampaignBattle } from '../data/campaignNodes';
+import { processImportFiles } from '../services/jsonImport';
 import {
   BookOpen,
   Plus,
@@ -160,7 +161,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
   const collectionViewTrigger = useRef<HTMLButtonElement | null>(null);
   const advancedSettingsTrigger = useRef<HTMLButtonElement | null>(null);
   const inventoryTrigger = useRef<HTMLButtonElement | null>(null);
-  const editorCards = [...new Map([...cards, ...(editingCampaign?.embeddedCards || [])].map((card) => [card.id, card])).values()];
+  const editorCards = [...new Map([...(editingCampaign?.embeddedCards || []), ...cards].map((card) => [card.id, card])).values()];
   const editorChallenges = [...new Map([...(editingCampaign?.embeddedChallenges || []), ...challenges].map((challenge) => [challenge.id, challenge])).values()];
   const collectionPickerCards = editorCards.filter((card) =>
     card.cardType === collectionPickerType &&
@@ -377,22 +378,19 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const importFiles = Array.from(files).map(
-      (file) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ''));
-          reader.onerror = () => reject(reader.error || new Error(`Could not read ${file.name}`));
-          reader.readAsText(file);
-        })
-    );
-
-    void Promise.all(importFiles)
-      .then((contents) => {
+    void processImportFiles(files, (content, file) => ({ content, file }))
+      .then((filesToImport) => {
         let totalCount = 0;
         const importedNames: string[] = [];
-        const errors: string[] = [];
-        contents.forEach((content, index) => {
+        const errors = filesToImport.flatMap(({ content, file }) => {
+          const validation = StorageService.validateCampaignsJson(content);
+          return validation.success ? [] : [`${file.name}: ${validation.error || 'invalid JSON'}`];
+        });
+        if (errors.length > 0) {
+          showFeedback(`No files were imported. ${errors.join(' ')}`, 'error');
+          return;
+        }
+        filesToImport.forEach(({ content, file }) => {
           const result = StorageService.importCampaignsJson(content);
           if (result.success) {
             totalCount += result.count;
@@ -402,7 +400,7 @@ export const CampaignEditor: React.FC<CampaignEditorProps> = ({
               if (campaign.name) importedNames.push(campaign.name);
             });
           } else {
-            errors.push(`${files[index].name}: ${result.error || 'invalid JSON'}`);
+            errors.push(`${file.name}: ${result.error || 'invalid JSON'}`);
           }
         });
 

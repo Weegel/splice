@@ -3,6 +3,7 @@ import { PvEChallenge, TeamSelection } from '../types/battle';
 import { CardDefinition, Splinter } from '../types/card';
 import { RulesetName, RULESET_METADATA, ALL_SPLINTERS } from '../types/ruleset';
 import { StorageService } from '../data/storage';
+import { processImportFiles } from '../services/jsonImport';
 import { CardPreview, SPLINTER_BG_COLORS } from './CardPreview';
 import {
   Swords,
@@ -151,24 +152,24 @@ export const ChallengeBuilder: React.FC<ChallengeBuilderProps> = ({
     if (!files || files.length === 0) return;
 
     let totalCount = 0;
-    let filesProcessed = 0;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const content = evt.target?.result as string;
-        const res = StorageService.importChallengesJson(content);
-        if (res.success) {
-          totalCount += res.count;
+    void processImportFiles(files, (content, file) => ({ content, file }))
+      .then((results) => {
+        const invalidFiles = results.flatMap(({ content, file }) => {
+          const validation = StorageService.validateChallengesJson(content);
+          return validation.success ? [] : [`${file.name}: ${validation.error || 'invalid JSON'}`];
+        });
+        if (invalidFiles.length > 0) {
+          showFeedback(`No files were imported. ${invalidFiles.join(' ')}`);
+          return;
         }
-        filesProcessed++;
-        if (filesProcessed === files.length) {
-          onChallengesUpdated();
-          showFeedback(`Imported ${totalCount} challenge(s) from ${files.length} file(s)!`);
-        }
-      };
-      reader.readAsText(file);
-    });
+        results.forEach(({ content }) => {
+          const result = StorageService.importChallengesJson(content);
+          if (result.success) totalCount += result.count;
+        });
+        onChallengesUpdated();
+        showFeedback(`Imported ${totalCount} challenge(s) from ${files.length} file(s)!`);
+      })
+      .catch((error) => showFeedback(error.message || 'Could not import challenge files.'));
     e.target.value = '';
   };
 

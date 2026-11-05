@@ -11,6 +11,14 @@ const DB_NAME = 'splinterlands-local-workspace';
 const STORE_NAME = 'handles';
 const HANDLE_KEY = 'local-folder';
 
+function mutationHeaders(): HeadersInit {
+  const token = document.querySelector<HTMLMetaElement>('meta[name="local-workspace-csrf-token"]')?.content;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'X-Local-CSRF-Token': token } : {}),
+  };
+}
+
 export class LocalWorkspaceService {
   private static cachedHandle: FileSystemDirectoryHandle | null = null;
   private static lastError: string | null = null;
@@ -48,7 +56,7 @@ export class LocalWorkspaceService {
       try {
         const response = await fetch('/__local_campaign_runs_save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: mutationHeaders(),
           body,
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -65,7 +73,7 @@ export class LocalWorkspaceService {
     try {
       const response = await fetch('/__local_profiles_save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: mutationHeaders(),
         body: JSON.stringify({ profiles, activeProfileId }),
       });
       return response.ok;
@@ -149,7 +157,7 @@ export class LocalWorkspaceService {
     try {
       const response = await fetch('/__local_workspace_delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: mutationHeaders(),
         body: JSON.stringify({ kind, id }),
       });
       if (response.ok) return true;
@@ -178,7 +186,7 @@ export class LocalWorkspaceService {
     try {
       const response = await fetch('/__local_workspace_save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: mutationHeaders(),
         body: JSON.stringify({ kind, value }),
       });
       return response.ok;

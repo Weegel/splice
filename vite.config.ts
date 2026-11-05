@@ -2,6 +2,70 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { randomBytes } from 'node:crypto'
+
+const localWorkspaceCsrfToken = randomBytes(32).toString('hex')
+const maxMutationBodyBytes = 5_000_000
+
+async function readJsonBody(req: any) {
+  const host = String(req.headers.host || '')
+  if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host)) {
+    const error: any = new Error('Invalid Host header')
+    error.statusCode = 403
+    throw error
+  }
+
+  const origin = String(req.headers.origin || '')
+  let originUrl: URL
+  try {
+    originUrl = new URL(origin)
+  } catch {
+    const error: any = new Error('A valid same-origin Origin header is required')
+    error.statusCode = 403
+    throw error
+  }
+  const expectedProtocol = req.socket?.encrypted ? 'https:' : 'http:'
+  if (originUrl.protocol !== expectedProtocol || originUrl.host.toLowerCase() !== host.toLowerCase()) {
+    const error: any = new Error('A same-origin request is required')
+    error.statusCode = 403
+    throw error
+  }
+  if (String(req.headers['sec-fetch-site'] || '').toLowerCase() === 'cross-site') {
+    const error: any = new Error('Cross-site requests are not allowed')
+    error.statusCode = 403
+    throw error
+  }
+  if (String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase() !== 'application/json') {
+    const error: any = new Error('Content-Type must be application/json')
+    error.statusCode = 415
+    throw error
+  }
+  if (req.headers['x-local-csrf-token'] !== localWorkspaceCsrfToken) {
+    const error: any = new Error('Invalid CSRF token')
+    error.statusCode = 403
+    throw error
+  }
+
+  const contentLength = Number(req.headers['content-length'] || 0)
+  if (contentLength > maxMutationBodyBytes) {
+    const error: any = new Error('Request body is too large')
+    error.statusCode = 413
+    throw error
+  }
+  const chunks: Buffer[] = []
+  let bodyBytes = 0
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    bodyBytes += buffer.length
+    if (bodyBytes > maxMutationBodyBytes) {
+      const error: any = new Error('Request body is too large')
+      error.statusCode = 413
+      throw error
+    }
+    chunks.push(buffer)
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+}
 
 const cardApiEndpoints = [
   'https://api2.splinterlands.com/cards/get_details',
@@ -98,6 +162,9 @@ async function migrateBattleFileNames(root: string) {
 
 const localWorkspacePlugin = () => ({
   name: 'local-workspace-writer',
+  transformIndexHtml(html: string) {
+    return html.replace('<head>', `<head><meta name="local-workspace-csrf-token" content="${localWorkspaceCsrfToken}">`)
+  },
   configureServer(server: any) {
     server.middlewares.use('/__local_campaign_runs_save', async (req: any, res: any) => {
       if (req.method !== 'POST') {
@@ -106,9 +173,7 @@ const localWorkspacePlugin = () => ({
         return
       }
       try {
-        let body = ''
-        for await (const chunk of req) body += chunk
-        const payload = JSON.parse(body)
+        const payload = await readJsonBody(req)
         if (!payload.runs || typeof payload.runs !== 'object' || Array.isArray(payload.runs)) throw new Error('Invalid campaign runs payload')
         const root = path.resolve(process.cwd(), 'local')
         await fs.mkdir(root, { recursive: true })
@@ -120,7 +185,7 @@ const localWorkspacePlugin = () => ({
         res.end(JSON.stringify({ ok: true }))
       } catch (error) {
         console.error('Campaign progress write failed', error)
-        res.statusCode = 400
+        res.statusCode = (error as any)?.statusCode || 400
         res.end('Could not save campaign progress')
       }
     })
@@ -132,9 +197,7 @@ const localWorkspacePlugin = () => ({
         return
       }
       try {
-        let body = ''
-        for await (const chunk of req) body += chunk
-        const payload = JSON.parse(body)
+        const payload = await readJsonBody(req)
         if (!Array.isArray(payload.profiles)) throw new Error('Invalid profiles payload')
         const root = path.resolve(process.cwd(), 'local')
         await fs.mkdir(root, { recursive: true })
@@ -144,7 +207,7 @@ const localWorkspacePlugin = () => ({
         res.end(JSON.stringify({ ok: true }))
       } catch (error) {
         console.error('Profile write failed', error)
-        res.statusCode = 400
+        res.statusCode = (error as any)?.statusCode || 400
         res.end('Invalid profiles payload')
       }
     })
@@ -175,9 +238,7 @@ const localWorkspacePlugin = () => ({
       }
 
       try {
-        let body = ''
-        for await (const chunk of req) body += chunk
-        const payload = JSON.parse(body)
+        const payload = await readJsonBody(req)
         const kind = ['cards', 'battles', 'campaigns'].includes(payload.kind) ? payload.kind : null
         if (!kind || !payload.id) {
           res.statusCode = 400
@@ -191,7 +252,7 @@ const localWorkspacePlugin = () => ({
         res.end(JSON.stringify({ ok: true }))
       } catch (error) {
         console.error('Local workspace delete failed', error)
-        res.statusCode = 500
+        res.statusCode = (error as any)?.statusCode || 500
         res.end('Local workspace delete failed')
       }
     })
@@ -269,9 +330,7 @@ const localWorkspacePlugin = () => ({
       }
 
       try {
-        let body = ''
-        for await (const chunk of req) body += chunk
-        const payload = JSON.parse(body)
+        const payload = await readJsonBody(req)
         const kind = ['cards', 'battles', 'campaigns'].includes(payload.kind) ? payload.kind : null
         if (!kind || !payload.value?.id) {
           res.statusCode = 400
@@ -296,7 +355,7 @@ const localWorkspacePlugin = () => ({
         res.end(JSON.stringify({ ok: true }))
       } catch (error) {
         console.error('Local workspace write failed', error)
-        res.statusCode = 500
+        res.statusCode = (error as any)?.statusCode || 500
         res.end('Local workspace write failed')
       }
     })
@@ -307,6 +366,7 @@ const localWorkspacePlugin = () => ({
 export default defineConfig({
   plugins: [react(), localWorkspacePlugin()],
   server: {
+    host: '127.0.0.1',
     port: 5173,
     strictPort: false,
   },

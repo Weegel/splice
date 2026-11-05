@@ -15,6 +15,7 @@ import { SandboxSimulator } from './components/SandboxSimulator';
 import { PlayerProfileModal } from './components/PlayerProfileModal';
 import { PlayerCollectionState, SplinterlandsApiService } from './services/splinterlandsApi';
 import { LocalWorkspaceService } from './services/localWorkspace';
+import { processImportFiles } from './services/jsonImport';
 import { ProfileSetupModal } from './components/ProfileSetupModal';
 import { isOfficialSplCardId } from './data/cardIds';
 import {
@@ -223,25 +224,26 @@ export default function App() {
 
     let totalCards = 0;
     let totalChallenges = 0;
-    let filesProcessed = 0;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const content = evt.target?.result as string;
-        const res = StorageService.importFullBundleJson(content);
-        if (res.success) {
-          totalCards += res.cardsCount;
-          totalChallenges += res.challengesCount;
+    void processImportFiles(files, (content, file) => ({ content, file }))
+      .then((results) => {
+        const invalidFiles = results.flatMap(({ content, file }) => {
+          const validation = StorageService.validateFullBundleJson(content);
+          return validation.success ? [] : [`${file.name}: ${validation.error || 'invalid JSON'}`];
+        });
+        if (invalidFiles.length > 0) {
+          alert(`No files were imported. ${invalidFiles.join(' ')}`);
+          return;
         }
-        filesProcessed++;
-        if (filesProcessed === files.length) {
-          loadData();
-          alert(`Successfully imported ${totalCards} custom card(s) and ${totalChallenges} challenge(s) from ${files.length} file(s)!`);
-        }
-      };
-      reader.readAsText(file);
-    });
+        results.forEach((result) => {
+          const imported = StorageService.importFullBundleJson(result.content);
+          if (!imported.success) return;
+          totalCards += imported.cardsCount;
+          totalChallenges += imported.challengesCount;
+        });
+        loadData();
+        alert(`Successfully imported ${totalCards} custom card(s) and ${totalChallenges} challenge(s) from ${files.length} file(s)!`);
+      })
+      .catch((error) => alert(error.message || 'Could not import bundle files.'));
     e.target.value = '';
   };
 

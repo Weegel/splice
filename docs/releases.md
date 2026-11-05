@@ -71,6 +71,11 @@ These packages remain unsigned, and Windows may still show security warnings.
 ## Repository Requirements
 
 - Enable GitHub Actions and allow the actions used by the release workflow.
+- Configure the `release-publication` GitHub environment with required reviewers.
+   The build job has no publication permissions; the publish and attestation job
+   waits for this environment's approval before using its write permissions.
+- Publication does not overwrite same-named assets. Inspect an existing release
+   and resolve asset-name conflicts explicitly before rerunning publication.
 - Public repositories support artifact attestations. Private repositories need
   a GitHub plan that supports them; review GitHub's current plan restrictions.
 - The workflow uses the built-in `GITHUB_TOKEN`. No personal token or signing

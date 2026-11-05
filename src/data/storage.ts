@@ -23,6 +23,145 @@ const STORAGE_KEYS = {
   ACTIVE_PROFILE: 'splinter_active_profile',
 };
 
+const MAX_IMPORT_JSON_BYTES = 5_000_000;
+const MAX_IMPORT_DEPTH = 40;
+const MAX_IMPORT_VALUES = 100_000;
+const MAX_IMPORT_STRING_LENGTH = 20_000;
+const MAX_IMPORT_ITEMS = 500;
+
+function parseImportJson(jsonString: string): any {
+  if (new TextEncoder().encode(jsonString).byteLength > MAX_IMPORT_JSON_BYTES) {
+    throw new Error('JSON file exceeds the 5 MB import limit.');
+  }
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (const character of jsonString) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === '{' || character === '[') {
+      depth++;
+      if (depth > MAX_IMPORT_DEPTH) throw new Error('JSON nesting exceeds the import limit.');
+    } else if (character === '}' || character === ']') depth--;
+  }
+
+  const parsed = JSON.parse(jsonString);
+  const pending: Array<{ value: any; depth: number }> = [{ value: parsed, depth: 0 }];
+  let valueCount = 0;
+  while (pending.length) {
+    const { value, depth: valueDepth } = pending.pop()!;
+    valueCount++;
+    if (valueCount > MAX_IMPORT_VALUES) throw new Error('JSON contains too many values.');
+    if (typeof value === 'string' && value.length > MAX_IMPORT_STRING_LENGTH) {
+      throw new Error('A JSON string exceeds the 20,000 character import limit.');
+    }
+    if (!value || typeof value !== 'object') continue;
+    if (valueDepth >= MAX_IMPORT_DEPTH) throw new Error('JSON nesting exceeds the import limit.');
+    const entries = Array.isArray(value) ? value : Object.values(value);
+    if (entries.length > MAX_IMPORT_ITEMS) throw new Error(`A JSON collection exceeds the ${MAX_IMPORT_ITEMS} item limit.`);
+    for (const child of entries) pending.push({ value: child, depth: valueDepth + 1 });
+  }
+  return parsed;
+}
+
+function isRecord(value: any): value is Record<string, any> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isBoundedString(value: any): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= MAX_IMPORT_STRING_LENGTH;
+}
+
+function validateImportedCard(card: any): boolean {
+  const splinters = ['Fire', 'Water', 'Earth', 'Life', 'Death', 'Dragon', 'Neutral'];
+  const cardTypes = ['Monster', 'Summoner'];
+  const rarities = ['Common', 'Rare', 'Epic', 'Legendary'];
+  const attackTypes = ['Melee', 'Ranged', 'Magic', 'None'];
+  return isRecord(card) && isBoundedString(card.id) && isBoundedString(card.name)
+    && splinters.includes(card.splinter) && cardTypes.includes(card.cardType) && rarities.includes(card.rarity)
+    && Array.isArray(card.stats) && card.stats.length > 0 && card.stats.length <= 20
+    && card.stats.every((stat: any) => isRecord(stat)
+      && ['level', 'mana', 'attack', 'speed', 'armor', 'health'].every((key) => Number.isFinite(stat[key]))
+      && attackTypes.includes(stat.attackType) && Array.isArray(stat.abilities) && stat.abilities.length <= 200
+      && stat.abilities.every(isBoundedString));
+}
+
+function validateImportedChallenge(challenge: any): boolean {
+  const splinters = ['Fire', 'Water', 'Earth', 'Life', 'Death', 'Dragon', 'Neutral'];
+  return isRecord(challenge) && isBoundedString(challenge.id) && isBoundedString(challenge.name)
+    && isBoundedString(challenge.description) && Number.isFinite(challenge.manaCap)
+    && Array.isArray(challenge.rulesets) && challenge.rulesets.length <= 100
+    && challenge.rulesets.every(isBoundedString)
+    && Array.isArray(challenge.allowedSplinters) && challenge.allowedSplinters.length <= splinters.length
+    && challenge.allowedSplinters.every((splinter: any) => splinters.includes(splinter))
+    && isRecord(challenge.enemyTeam)
+    && (challenge.enemyTeam.summonerId === null || isBoundedString(challenge.enemyTeam.summonerId))
+    && Number.isFinite(challenge.enemyTeam.summonerLevel)
+    && Array.isArray(challenge.enemyTeam.monsters) && challenge.enemyTeam.monsters.length <= 6
+    && challenge.enemyTeam.monsters.every((monster: any) => isRecord(monster)
+      && isBoundedString(monster.cardId) && Number.isFinite(monster.level))
+    && (!challenge.embeddedCards || (Array.isArray(challenge.embeddedCards)
+      && challenge.embeddedCards.every(validateImportedCard)));
+}
+
+function validateImportedCampaign(campaign: any): boolean {
+  const nodeTypes = ['text', 'decision', 'multi', 'hub', 'shop', 'battle', 'end'];
+  if (!isRecord(campaign) || !isBoundedString(campaign.id) || !isBoundedString(campaign.name)
+    || !isBoundedString(campaign.description) || !isBoundedString(campaign.startNodeId)
+    || !isRecord(campaign.nodes)) return false;
+  const nodeEntries = Object.entries(campaign.nodes);
+  if (nodeEntries.length === 0 || nodeEntries.length > MAX_IMPORT_ITEMS) return false;
+  let edgeCount = 0;
+  for (const [nodeId, node] of nodeEntries) {
+    if (!isRecord(node) || !isBoundedString(nodeId) || node.id !== nodeId
+      || !nodeTypes.includes(node.type) || !isBoundedString(node.title)) return false;
+    if (node.effects && (!Array.isArray(node.effects) || !node.effects.every((effect: any) => isRecord(effect)
+      && isBoundedString(effect.id) && isBoundedString(effect.type)))) return false;
+    if (node.type === 'text' && !isBoundedString(node.content)) return false;
+    if ((node.type === 'decision' || node.type === 'hub') && !isBoundedString(node.prompt)) return false;
+    if (node.type === 'decision' || node.type === 'hub' || node.type === 'multi') {
+      if (!Array.isArray(node.choices) || node.choices.length > MAX_IMPORT_ITEMS) return false;
+      edgeCount += node.choices.length;
+      if (!node.choices.every((choice: any) => isRecord(choice)
+        && isBoundedString(choice.id) && isBoundedString(choice.nextNodeId)
+        && (node.type === 'multi'
+          ? Number.isFinite(choice.probability) && choice.probability >= 0 && choice.probability <= 1
+          : isBoundedString(choice.text)))) return false;
+    }
+    if (node.type === 'shop' && (!Array.isArray(node.offers) || node.offers.length > MAX_IMPORT_ITEMS
+      || !node.offers.every((offer: any) => isRecord(offer) && isBoundedString(offer.id)
+        && Array.isArray(offer.costs) && Array.isArray(offer.effects)))) return false;
+    if (node.type === 'battle' && ((node.challengeId !== undefined && !isBoundedString(node.challengeId))
+      || (node.inlineChallenge !== undefined && !validateImportedChallenge(node.inlineChallenge)))) return false;
+    if (node.type === 'end' && (!['victory', 'defeat', 'neutral'].includes(node.outcome)
+      || !isBoundedString(node.message))) return false;
+  }
+  return edgeCount <= 2_000
+    && Object.prototype.hasOwnProperty.call(campaign.nodes, campaign.startNodeId)
+    && (!campaign.embeddedCards || (Array.isArray(campaign.embeddedCards)
+      && campaign.embeddedCards.every(validateImportedCard)))
+    && (!campaign.embeddedChallenges || (Array.isArray(campaign.embeddedChallenges)
+      && campaign.embeddedChallenges.every(validateImportedChallenge)));
+}
+
+function getImportedCollection(parsed: any, property: string, validate: (item: any) => boolean, label: string): any[] {
+  let items = parsed;
+  if (!Array.isArray(items)) {
+    if (isRecord(items) && validate(items)) items = [items];
+    else if (isRecord(items) && Array.isArray(items[property])) items = items[property];
+    else throw new Error(`Imported data must be an array of ${label} or a single ${label.slice(0, -1)} object.`);
+  }
+  if (items.length > MAX_IMPORT_ITEMS || !items.every(validate)) {
+    throw new Error(`Imported ${label} must contain at most ${MAX_IMPORT_ITEMS} valid entries.`);
+  }
+  return items;
+}
+
 export class StorageService {
   static getProfiles(): LocalPlayerProfile[] {
     try {
@@ -198,9 +337,11 @@ export class StorageService {
   static saveCard(card: CardDefinition): CardDefinition {
     const customCards = this.getCustomCards();
     const existingIndex = card.id ? customCards.findIndex((c) => c.id === card.id) : -1;
-    const existingIds = this.getCards().map((existingCard) => existingCard.id);
+    const existingCards = this.getCards();
+    const existingIds = existingCards.map((existingCard) => existingCard.id);
+    const existingCustomCard = existingCards.some((entry) => entry.id === card.id && entry.isCustom && !isOfficialSplCardId(entry.id));
     const idIsAvailable = card.id && !existingIds.includes(card.id);
-    const id = existingIndex >= 0 || idIsAvailable
+    const id = existingIndex >= 0 || existingCustomCard || idIsAvailable
       ? card.id
       : createCustomCardId(card, existingIds);
     const updatedCard = { ...card, id, isCustom: true };
@@ -213,6 +354,17 @@ export class StorageService {
     
     localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(customCards));
     void LocalWorkspaceService.writeCreation('cards', updatedCard);
+    for (const campaign of this.getCampaigns()) {
+      const challenges = [
+        ...(campaign.embeddedChallenges || []),
+        ...Object.values(campaign.nodes).flatMap((node) => node.type === 'battle' && node.inlineChallenge ? [node.inlineChallenge] : []),
+      ];
+      const referenced = (campaign.embeddedCards || []).some((entry) => entry.id === id)
+        || getCampaignPlayerCardIds(campaign).includes(id)
+        || challenges.some((challenge) => (challenge.embeddedCards || []).some((entry) => entry.id === id)
+          || challenge.enemyTeam.summonerId === id || challenge.enemyTeam.monsters.some((entry) => entry.cardId === id));
+      if (referenced) this.saveCampaign(campaign);
+    }
     return updatedCard;
   }
 
@@ -227,28 +379,25 @@ export class StorageService {
     return JSON.stringify(cardsToExport, null, 2);
   }
 
+  static validateCardsJson(jsonString: string): { success: boolean; error?: string } {
+    try {
+      getImportedCollection(parseImportJson(jsonString), 'cards', validateImportedCard, 'cards');
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Invalid JSON' };
+    }
+  }
+
   static importCardsJson(jsonString: string): { success: boolean; count: number; error?: string } {
     try {
-      let parsed = JSON.parse(jsonString);
-      // Support single card object or array of cards
-      if (!Array.isArray(parsed)) {
-        if (parsed && typeof parsed === 'object' && parsed.id && parsed.name) {
-          parsed = [parsed];
-        } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.cards)) {
-          parsed = parsed.cards;
-        } else {
-          throw new Error('Imported data must be an array of card definitions or a single card object.');
-        }
-      }
+      const parsed = getImportedCollection(parseImportJson(jsonString), 'cards', validateImportedCard, 'cards');
       const existing = this.getCustomCards();
       const map = new Map<string, CardDefinition>();
       existing.forEach((c) => map.set(c.id, c));
       let count = 0;
       for (const card of parsed) {
-        if (card.id && card.name && card.stats) {
-          map.set(card.id, { ...card, isCustom: true });
-          count++;
-        }
+        map.set(card.id, { ...card, isCustom: true });
+        count++;
       }
       localStorage.setItem(STORAGE_KEYS.CARDS, JSON.stringify(Array.from(map.values())));
       return { success: true, count };
@@ -320,28 +469,25 @@ export class StorageService {
     return JSON.stringify(challengesToExport, null, 2);
   }
 
+  static validateChallengesJson(jsonString: string): { success: boolean; error?: string } {
+    try {
+      getImportedCollection(parseImportJson(jsonString), 'challenges', validateImportedChallenge, 'challenges');
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Invalid JSON' };
+    }
+  }
+
   static importChallengesJson(jsonString: string): { success: boolean; count: number; error?: string } {
     try {
-      let parsed = JSON.parse(jsonString);
-      // Support single challenge or array or bundle wrapper
-      if (!Array.isArray(parsed)) {
-        if (parsed && typeof parsed === 'object' && parsed.id && parsed.name && parsed.enemyTeam) {
-          parsed = [parsed];
-        } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.challenges)) {
-          parsed = parsed.challenges;
-        } else {
-          throw new Error('Imported data must be an array of PvE challenges or a single challenge object.');
-        }
-      }
+      const parsed = getImportedCollection(parseImportJson(jsonString), 'challenges', validateImportedChallenge, 'challenges');
       const existing = this.getCustomChallenges();
       const map = new Map<string, PvEChallenge>();
       existing.forEach((c) => map.set(c.id, c));
       let count = 0;
       for (const ch of parsed) {
-        if (ch.id && ch.name && ch.enemyTeam) {
-          map.set(ch.id, { ...ch, isCustom: true });
-          count++;
-        }
+        map.set(ch.id, { ...ch, isCustom: true });
+        count++;
       }
       localStorage.setItem(STORAGE_KEYS.CHALLENGES, JSON.stringify(Array.from(map.values())));
       return { success: true, count };
@@ -397,6 +543,27 @@ export class StorageService {
 
   static saveCampaign(campaign: CampaignDefinition): void {
     campaign = normalizeCampaignNodes(campaign);
+    const catalog = this.getCards();
+    const refreshChallenge = (challenge: PvEChallenge): PvEChallenge => {
+      const referencedIds = new Set([
+        challenge.enemyTeam.summonerId,
+        ...challenge.enemyTeam.monsters.map((entry) => entry.cardId),
+        ...(challenge.embeddedCards || []).map((card) => card.id),
+      ]);
+      return {
+        ...challenge,
+        embeddedCards: [...new Map([
+          ...(challenge.embeddedCards || []),
+          ...catalog.filter((card) => referencedIds.has(card.id)),
+        ].map((card) => [card.id, card])).values()],
+      };
+    };
+    campaign = {
+      ...campaign,
+      nodes: Object.fromEntries(Object.entries(campaign.nodes).map(([id, node]) => [id,
+        node.type === 'battle' && node.inlineChallenge ? { ...node, inlineChallenge: refreshChallenge(node.inlineChallenge) } : node,
+      ])),
+    };
     const custom = this.getCustomCampaigns();
     const idx = custom.findIndex((c) => c.id === campaign.id);
     const inlineChallenges = Object.values(campaign.nodes)
@@ -410,11 +577,12 @@ export class StorageService {
     const embeddedChallenges = [
       ...this.getChallenges()
       .filter((challenge) => referencedChallengeIds.includes(challenge.id))
-      .map((challenge) => ({ ...challenge })),
+      .map(refreshChallenge),
       ...inlineChallenges,
     ];
     const referencedCardIds = [
       ...getCampaignPlayerCardIds(campaign),
+      ...(campaign.embeddedCards || []).map((card) => card.id),
       ...embeddedChallenges.flatMap((challenge) => [
         challenge.enemyTeam.summonerId,
         ...challenge.enemyTeam.monsters.map((monster) => monster.cardId),
@@ -423,7 +591,7 @@ export class StorageService {
     ];
     const embeddedCards = [...new Map([
       ...(campaign.embeddedCards || []),
-      ...this.getCards().filter((card) => referencedCardIds.includes(card.id)),
+      ...catalog.filter((card) => referencedCardIds.includes(card.id)),
     ].map((card) => [card.id, { ...card }])).values()];
     const updated = { ...campaign, isCustom: true, embeddedCards, embeddedChallenges };
     if (idx >= 0) {
@@ -448,27 +616,25 @@ export class StorageService {
     return JSON.stringify(campaignsToExport, null, 2);
   }
 
+  static validateCampaignsJson(jsonString: string): { success: boolean; error?: string } {
+    try {
+      getImportedCollection(parseImportJson(jsonString), 'campaigns', validateImportedCampaign, 'campaigns');
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Invalid JSON' };
+    }
+  }
+
   static importCampaignsJson(jsonString: string): { success: boolean; count: number; error?: string } {
     try {
-      let parsed = JSON.parse(jsonString);
-      if (!Array.isArray(parsed)) {
-        if (parsed && typeof parsed === 'object' && parsed.id && parsed.name && parsed.nodes) {
-          parsed = [parsed];
-        } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.campaigns)) {
-          parsed = parsed.campaigns;
-        } else {
-          throw new Error('Imported data must be an array of campaigns or a single campaign object.');
-        }
-      }
+      const parsed = getImportedCollection(parseImportJson(jsonString), 'campaigns', validateImportedCampaign, 'campaigns');
       const existing = this.getCustomCampaigns();
       const map = new Map<string, CampaignDefinition>();
       existing.forEach((c) => map.set(c.id, c));
       let count = 0;
       for (const camp of parsed) {
-        if (camp.id && camp.name && camp.nodes && camp.startNodeId) {
-          map.set(camp.id, normalizeCampaignNodes({ ...camp, isCustom: true }));
-          count++;
-        }
+        map.set(camp.id, normalizeCampaignNodes({ ...camp, isCustom: true }));
+        count++;
       }
       localStorage.setItem(STORAGE_KEYS.CAMPAIGNS, JSON.stringify(Array.from(map.values())));
       return { success: true, count };
@@ -546,7 +712,9 @@ export class StorageService {
     error?: string;
   } {
     try {
-      const parsed = JSON.parse(jsonString);
+      const validation = this.validateFullBundleJson(jsonString);
+      if (!validation.success) throw new Error(validation.error || 'Invalid JSON');
+      const parsed = parseImportJson(jsonString);
       let cardsCount = 0;
       let challengesCount = 0;
       let campaignsCount = 0;
@@ -587,6 +755,38 @@ export class StorageService {
       return { success: true, cardsCount, challengesCount, campaignsCount };
     } catch (err: any) {
       return { success: false, cardsCount: 0, challengesCount: 0, campaignsCount: 0, error: err.message || 'Invalid JSON' };
+    }
+  }
+
+  static validateFullBundleJson(jsonString: string): { success: boolean; error?: string } {
+    try {
+      const parsed = parseImportJson(jsonString);
+      if (!isRecord(parsed)) throw new Error('Imported bundle must be a JSON object.');
+      const cards = parsed.customCards || parsed.cards;
+      const challenges = parsed.customChallenges || parsed.challenges;
+      const campaigns = parsed.customCampaigns || parsed.campaigns;
+      if (cards) getImportedCollection(cards, 'cards', validateImportedCard, 'cards');
+      if (challenges) getImportedCollection(challenges, 'challenges', validateImportedChallenge, 'challenges');
+      if (campaigns) getImportedCollection(campaigns, 'campaigns', validateImportedCampaign, 'campaigns');
+      if (!cards && !challenges && !campaigns) {
+        const validators = [
+          () => getImportedCollection(parsed, 'campaigns', validateImportedCampaign, 'campaigns'),
+          () => getImportedCollection(parsed, 'cards', validateImportedCard, 'cards'),
+          () => getImportedCollection(parsed, 'challenges', validateImportedChallenge, 'challenges'),
+        ];
+        for (const validate of validators) {
+          try {
+            validate();
+            return { success: true };
+          } catch {
+            // Try the next supported standalone import format.
+          }
+        }
+        throw new Error('Could not recognize cards, battles, or campaigns format in this file.');
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Invalid JSON' };
     }
   }
 

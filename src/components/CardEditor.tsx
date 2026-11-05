@@ -4,6 +4,7 @@ import { ALL_ABILITIES, ABILITY_METAS } from '../data/abilities';
 import { ALL_SPLINTERS } from '../types/ruleset';
 import { CardPreview, SPLINTER_BG_COLORS } from './CardPreview';
 import { StorageService } from '../data/storage';
+import { processImportFiles } from '../services/jsonImport';
 import {
   Plus,
   Trash2,
@@ -294,24 +295,24 @@ export const CardEditor: React.FC<CardEditorProps> = ({ cards, onCardsUpdated })
     if (!files || files.length === 0) return;
 
     let totalCount = 0;
-    let filesProcessed = 0;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const content = evt.target?.result as string;
-        const res = StorageService.importCardsJson(content);
-        if (res.success) {
-          totalCount += res.count;
+    void processImportFiles(files, (content, file) => ({ content, file }))
+      .then((results) => {
+        const invalidFiles = results.flatMap(({ content, file }) => {
+          const validation = StorageService.validateCardsJson(content);
+          return validation.success ? [] : [`${file.name}: ${validation.error || 'invalid JSON'}`];
+        });
+        if (invalidFiles.length > 0) {
+          showFeedback(`No files were imported. ${invalidFiles.join(' ')}`);
+          return;
         }
-        filesProcessed++;
-        if (filesProcessed === files.length) {
-          onCardsUpdated();
-          showFeedback(`Imported ${totalCount} card(s) from ${files.length} file(s)!`);
-        }
-      };
-      reader.readAsText(file);
-    });
+        results.forEach(({ content }) => {
+          const result = StorageService.importCardsJson(content);
+          if (result.success) totalCount += result.count;
+        });
+        onCardsUpdated();
+        showFeedback(`Imported ${totalCount} card(s) from ${files.length} file(s)!`);
+      })
+      .catch((error) => showFeedback(error.message || 'Could not import card files.', 'error'));
     e.target.value = '';
   };
 
